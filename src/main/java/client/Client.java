@@ -11,17 +11,21 @@ class Client implements Callable<Integer> {
     @CommandLine.Option(names = {"-e", "--encryption-algorithms"}, split = ",", description = "Supported encryption algorithms: DES, 3DES, AES, RSA", required = true)
     private List<String> supportedEncryptionAlgorithms = new ArrayList<>();
 
-    @CommandLine.Option(names = {"-m", "--mangling-algorithms"}, split = ",", description = "Supported hashing/mangling algorithms: MD4, MD5, SHA-256, SHA-512", required = true)
+    @CommandLine.Option(names = {"-m", "--hashing-algorithms"}, split = ",", description = "Supported hashing algorithms: MD4, MD5, SHA-256, SHA-512", required = true)
     private List<String> supportedHashingAlgorithms = new ArrayList<>();
 
     @CommandLine.Option(names = {"-k", "--key-sizes"}, split = ",", description = "Supported key sizes: DES (64), 3DES (192), AES (128 | 192 | 256), RSA (1024 | 2048 | 4096)", required = true)
     private List<Integer> supportedKeySizes = new ArrayList<>();
+
+    @CommandLine.Option(names = { "-n", "--name"}, description = "Client identification string (spaces aren't allowed)")
+    private String name = "";
 
     @Override
     public Integer call() throws Exception {
         System.out.println(this.supportedEncryptionAlgorithms);
         System.out.println(this.supportedKeySizes);
         System.out.println(this.supportedHashingAlgorithms);
+        System.out.println(this.name);
         return null;
     }
 }
