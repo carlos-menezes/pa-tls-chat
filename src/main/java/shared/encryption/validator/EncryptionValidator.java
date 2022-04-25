@@ -36,7 +36,7 @@ public class EncryptionValidator {
         this.validators.put("DES", new DESValidator());
         this.validators.put("AES", new AESValidator());
         this.validators.put("RSA", new RSAValidator());
-        this.validators.put("3DES", new ThreeDESValidator());
+        this.validators.put("3DES", new TDESValidator());
     }
 
     /**
