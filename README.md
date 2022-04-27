@@ -7,6 +7,8 @@
 - `-k`, `--key-sizes`: int[]
 - `-e`, `--encryption-algorithms`: str[]
 - `-m`, `--hashing-algorithms`: str[]
+- `--host`: str
+- `--port`: int
 
 Esta configuração é definida por parâmetros ao iniciar o programa. O cliente verifica os parâmetros definidos, nomeadamente as combinações entre algoritmo de encriptação e tamanhos de chave. Caso não se verifique nenhuma falha, faz a ligação ao servidor.
 
