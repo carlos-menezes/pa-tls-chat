@@ -38,7 +38,7 @@ public class RequestHandler implements Runnable {
         // Throws exception if the cast is not successful
         Message receivedMessage = (Message) objectInputStream.readObject();
 
-        System.out.print(receivedMessage.getTeste());
+        System.out.print(receivedMessage.getMessage());
 
         OutputStream outputStream = this.parameters.getSocket().getOutputStream();
 
