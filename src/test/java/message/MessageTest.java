@@ -2,9 +2,6 @@ package message;
 
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 
 class MessageTest {
 
