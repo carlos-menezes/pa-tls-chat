@@ -1,13 +1,17 @@
 package shared.encryption.validator;
 
+import shared.encryption.validator.exceptions.InvalidKeySizeException;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import shared.encryption.validator.exceptions.InvalidKeySizeException;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 
 class DESValidatorTest {
     private DESValidator validator;
@@ -17,23 +21,29 @@ class DESValidatorTest {
         this.validator = new DESValidator();
     }
 
-    // Ideally a parameterized test with every possible combination, but arrays as sources for parameterized tests
-    // are funky
     @Test
-    void InvalidKeySizeTest() {
-        List<Integer> keySizes = List.of(128);
-        assertThrows(InvalidKeySizeException.class, () -> this.validator.validate(keySizes));
+    void TestGetAlgorithmName() {
+        assertEquals(this.validator.getName(), "DES");
+    }
+
+    @Test
+    void TestGetKeySizes() {
+        assertEquals(this.validator.getKeySizes(), List.of(56));
+    }
+
+    @Test
+    void TestGetAlgorithmType() {
+        assertEquals(this.validator.getType(), EncryptionAlgorithmType.SYMMETRIC);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 3, 5, -3, 15, Integer.MAX_VALUE})
+    void InvalidKeySizeTest(int n) {
+        assertThrows(InvalidKeySizeException.class, () -> this.validator.validate(n));
     }
 
     @Test
     void ValidKeySizeTest() {
-        List<Integer> keySizes = List.of(56);
-        assertDoesNotThrow(() -> this.validator.validate(keySizes));
-    }
-
-    @Test
-    void ValidAndInvalidKeySizeTest() {
-        List<Integer> keySizes = List.of(128, 56);
-        assertDoesNotThrow(() -> this.validator.validate(keySizes));
+        assertDoesNotThrow(() -> this.validator.validate(56));
     }
 }

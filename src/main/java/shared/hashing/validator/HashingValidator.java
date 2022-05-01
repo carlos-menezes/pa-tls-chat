@@ -9,29 +9,24 @@ import java.util.List;
  * the server.
  */
 public class HashingValidator {
-    private final List<String> supportedAlgorithms;
-    private final List<String> validAlgorithms = List.of("MD4", "MD5", "SHA-256", "SHA-512");
+
+    private final List<String> validAlgorithms;
 
     /**
      * Constructs a new {@link HashingValidator}.
-     *
-     * @param supportedAlgorithms list of the client's supported algorithms
      */
-    public HashingValidator(List<String> supportedAlgorithms) {
-        this.supportedAlgorithms = supportedAlgorithms;
+    public HashingValidator() {
+        this.validAlgorithms = List.of("MD4", "MD5", "SHA-256", "SHA-512");
     }
 
     /**
-     * Verifies if every algorithm is valid.
-     * @throws InvalidHashingAlgorithmException if at least one of the supplied algorithms is invalid
+     * Checks whether a given algorithm is valid or not.
+     *
+     * @param algorithm algorithm's name
      */
-    public void validate() throws InvalidHashingAlgorithmException {
-        for (String algorithm : supportedAlgorithms) {
-            if (!validAlgorithms.contains(algorithm)) {
-                throw new InvalidHashingAlgorithmException(algorithm, validAlgorithms);
-            }
+    public void validate(String algorithm) {
+        if (!this.validAlgorithms.contains(algorithm)) {
+            throw new InvalidHashingAlgorithmException(algorithm, validAlgorithms);
         }
     }
-
-
 }

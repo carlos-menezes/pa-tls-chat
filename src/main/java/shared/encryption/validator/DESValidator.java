@@ -10,6 +10,6 @@ public class DESValidator extends Validatable {
      * Constructs a new {@link DESValidator} object.
      */
     public DESValidator() {
-        super("DES", List.of(56));
+        super("DES", List.of(56), EncryptionAlgorithmType.SYMMETRIC);
     }
 }

@@ -11,27 +11,27 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class RSAValidatorTest {
-    private RSAValidator validator;
+class ThreeDESValidatorTest {
+    private ThreeDESValidator validator;
 
     @BeforeEach
     void setUp() {
-        this.validator = new RSAValidator();
+        this.validator = new ThreeDESValidator();
     }
 
     @Test
     void TestGetAlgorithmName() {
-        assertEquals(this.validator.getName(), "RSA");
+        assertEquals(this.validator.getName(), "ThreeDES");
     }
 
     @Test
     void TestGetKeySizes() {
-        assertEquals(this.validator.getKeySizes(), List.of(1024, 2048, 4096));
+        assertEquals(this.validator.getKeySizes(), List.of(168));
     }
 
     @Test
     void TestGetAlgorithmType() {
-        assertEquals(this.validator.getType(), EncryptionAlgorithmType.ASYMMETRIC);
+        assertEquals(this.validator.getType(), EncryptionAlgorithmType.SYMMETRIC);
     }
 
     @ParameterizedTest
@@ -42,10 +42,6 @@ class RSAValidatorTest {
 
     @Test
     void ValidKeySizeTest() {
-        assertDoesNotThrow(() -> {
-            this.validator.validate(1024);
-            this.validator.validate(2048);
-            this.validator.validate(4096);
-        });
+        assertDoesNotThrow(() -> this.validator.validate(168));
     }
 }
