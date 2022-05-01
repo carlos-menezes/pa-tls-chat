@@ -3,6 +3,8 @@ package client.protocol;
 import client.Client;
 import picocli.CommandLine;
 import shared.message.handshake.client.ClientHello;
+import shared.message.handshake.server.ServerError;
+import shared.message.handshake.server.ServerHello;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -32,16 +34,15 @@ public class Handshake implements Callable<Integer> {
         // 2. Receive `SERVER_HELLO` or `SERVER_ERROR`
         Object serverReply = this.receiveMessage();
         System.out.println(serverReply);
-//        if (serverReply instanceof ServerError) {
-//            // TODO: appropriate logging
-//            System.out.println("ERROR: username already in use");
-//            return CommandLine.ExitCode.SOFTWARE;
-//        }
-//
-//        // At this phase, no other types of message can be sent by the server,
-//        // so treat the message as `SERVER_HELLO`.
-//        serverReply = (ServerHello) serverReply;
-//        serverReply.
+        if (serverReply instanceof ServerError) {
+            // TODO: appropriate logging
+            System.out.println("ERROR: username already in use");
+            return CommandLine.ExitCode.SOFTWARE;
+        }
+
+        // At this phase, no other types of message can be sent by the server,
+        // so treat the message as `SERVER_HELLO`.
+
 
         return CommandLine.ExitCode.OK;
     }
