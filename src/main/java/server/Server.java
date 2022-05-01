@@ -12,7 +12,7 @@ import java.util.concurrent.Callable;
 @CommandLine.Command(name = "server", mixinStandardHelpOptions = true, version = "0.1")
 public class Server implements Callable<Integer> {
     private ServerSocket serverSocket;
-    private HashMap<String, ClientSpec> clients;
+    public static HashMap<String, ClientSpec> clients;
 
     @CommandLine.Option(names = {"--port"}, description = "Server to run the port on", required = true)
     private Integer port;

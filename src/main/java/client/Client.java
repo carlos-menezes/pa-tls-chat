@@ -76,13 +76,15 @@ public class Client implements Callable<Integer> {
             return CommandLine.ExitCode.SOFTWARE;
         }
 
-        try {
-            HashingValidator hashingValidator = new HashingValidator();
-            hashingValidator.validate(this.hashingAlgorithm);
-        } catch (InvalidHashingAlgorithmException e) {
-            // TODO: appropriate logging
-            e.printStackTrace();
-            return CommandLine.ExitCode.SOFTWARE;
+        if (!this.hashingAlgorithm.isEmpty()) {
+            try {
+                HashingValidator hashingValidator = new HashingValidator();
+                hashingValidator.validate(this.hashingAlgorithm);
+            } catch (InvalidHashingAlgorithmException e) {
+                // TODO: appropriate logging
+                e.printStackTrace();
+                return CommandLine.ExitCode.SOFTWARE;
+            }
         }
 
         if (this.name.isEmpty()) {

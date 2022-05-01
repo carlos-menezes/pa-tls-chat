@@ -11,26 +11,23 @@ import java.net.Socket;
 public class ClientSpec {
 
     private Socket socket;
-    // TODO: Add Encryption Alg, key size and hash alg
-    // maybe add the public key of the client
 
     /**
-     * Creates a new <code>ClientSpec</code> object by specifying the client's socket
-     * connection, encryption algorithm, key size for the encryption algorithm and
-     * the hashing algorithm used.
-     *
-     * @param socket Client's socket connection
+     * Constructs a new {@link ClientSpec} object.
      */
-    public ClientSpec(Socket socket) {
-        this.socket = socket;
+    public ClientSpec() {
     }
 
     /**
-     * Method that returns the client's socket connection.
+     * Gets the {@link #socket};
      *
-     * @return Client's socket connection
+     * @return value of {@link #socket}
      */
     public Socket getSocket() {
         return this.socket;
+    }
+
+    public void setSocket(Socket socket) {
+        this.socket = socket;
     }
 }
