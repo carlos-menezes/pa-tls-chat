@@ -20,6 +20,7 @@ public class Server implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
         this.serverSocket = new ServerSocket(this.port);
+        Server.clients = new HashMap<>();
         while (!this.serverSocket.isClosed()) {
             Socket client = this.serverSocket.accept();
             ClientHandler clientHandler = new ClientHandler(client);
