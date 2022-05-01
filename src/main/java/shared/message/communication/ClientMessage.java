@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 /**
- * The <code>MessageBreakDown</code> class represents all the operations executed in a message sent from a client.
+ * The <code>ClientMessage</code> class represents all the operations executed in a message sent from a client.
  * Extracts an <code>array</code> of user that the message is going to be sent to and extracts the message itself.
  */
 public class ClientMessage {
