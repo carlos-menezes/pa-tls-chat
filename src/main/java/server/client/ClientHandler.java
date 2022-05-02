@@ -46,8 +46,14 @@ public class ClientHandler implements Runnable {
             ServerError serverError = new ServerError(ServerError.USERNAME_IN_USE);
             this.sendMessage(serverError);
         } else {
-            ClientSpec clientSpec = new ClientSpec();
-            clientSpec.setSocket(this.socket);
+            ClientSpec clientSpec = new ClientSpec.Builder()
+                    .withSocket(this.socket)
+                    .withEncryptionAlgorithm(message.getEncryptionAlgorithm())
+                    .withKeySize(message.getKeySize())
+                    .withHashingAlgorithm(message.getHashingAlgorithm())
+                    .withEncryptionAlgorithmType(message.getEncryptionAlgorithmType())
+                    .build();
+
             Server.clients.put(message.getName(), clientSpec);
             // TODO: SERVER_HELLO IS NOT COMPLETE
             ServerHello serverHello = new ServerHello();
