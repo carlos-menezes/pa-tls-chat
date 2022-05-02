@@ -25,7 +25,8 @@ public class Client implements Callable<Integer> {
     /**
      * Commands line options
      */
-    @CommandLine.Option(names = {"-e", "--encryption-algorithms"}, description = "Encryption algorithm", required = true)
+    @CommandLine.Option(names = {"-e",
+                                 "--encryption-algorithms"}, description = "Encryption algorithm", required = true)
     @SuppressWarnings("FieldMayBeFinal")
     private String encryptionAlgorithm = "";
 
@@ -47,13 +48,11 @@ public class Client implements Callable<Integer> {
     @CommandLine.Option(names = {"--port"}, description = "Server port", required = true)
     private int port;
 
-    /**
-     * Class attributes.
-     */
+
     private Socket socket;
     private EncryptionAlgorithmType encryptionAlgorithmType;
-    private SecretKey symmetricKey;
-    private KeyPair asymmetricKey;
+    private SecretKey symmetricKey; // DES, ThreeDES or AES key
+    private KeyPair asymmetricKey; // RSA key
 
     @Override
     public Integer call() throws Exception {
@@ -61,12 +60,11 @@ public class Client implements Callable<Integer> {
             EncryptionValidator encryptionValidator = new EncryptionValidator();
             encryptionValidator.validate(this.encryptionAlgorithm, this.keySize);
 
-            EncryptionAlgorithmType encryptionAlgorithmType = encryptionValidator.getValidators()
-                                                                                 .get(this.encryptionAlgorithm)
-                                                                                 .getType();
-            switch (encryptionAlgorithmType) {
-                case SYMMETRIC -> this.symmetricKey = SymmetricEncryptionScheme.generateKey(this.encryptionAlgorithm,
-                                                                                            this.keySize);
+            this.encryptionAlgorithmType = encryptionValidator.getValidators()
+                                                              .get(this.encryptionAlgorithm)
+                                                              .getType();
+            switch (this.encryptionAlgorithmType) {
+                case SYMMETRIC -> this.symmetricKey = SymmetricEncryptionScheme.generateKey(this.encryptionAlgorithm, this.keySize);
                 case ASYMMETRIC -> this.asymmetricKey = AsymmetricEncryptionScheme.generateKeys(
                         this.encryptionAlgorithm, this.keySize);
             }
