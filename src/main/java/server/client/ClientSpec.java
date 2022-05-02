@@ -2,7 +2,9 @@ package server.client;
 
 import shared.encryption.validator.EncryptionAlgorithmType;
 
+import java.math.BigInteger;
 import java.net.Socket;
+import java.security.PublicKey;
 
 /**
  * The <code>ClientSpec</code> class represents all the characteristics that a client will
@@ -17,6 +19,8 @@ public class ClientSpec {
     private Integer keySize;
     private String hashingAlgorithm;
     private EncryptionAlgorithmType encryptionAlgorithmType;
+    private PublicKey publicRSAKey;
+    private BigInteger privateSharedDHKey;
 
     public Socket getSocket() {
         return this.socket;
@@ -63,6 +67,13 @@ public class ClientSpec {
         return this;
     }
 
+    public PublicKey getPublicRSAKey() {
+        return publicRSAKey;
+    }
+
+    public BigInteger getPrivateSharedDHKey() {
+        return privateSharedDHKey;
+    }
 
     public static final class Builder {
         private Socket socket;
@@ -70,6 +81,8 @@ public class ClientSpec {
         private Integer keySize;
         private String hashingAlgorithm;
         private EncryptionAlgorithmType encryptionAlgorithmType;
+        private PublicKey publicRSAKey;
+        private BigInteger privateSharedDHKey;
 
         public Builder() {
         }
@@ -99,13 +112,25 @@ public class ClientSpec {
             return this;
         }
 
+        public Builder withPublicRSAKey(PublicKey publicRSAKey) {
+            this.publicRSAKey = publicRSAKey;
+            return this;
+        }
+
+        public Builder withPrivateSharedDHKey(BigInteger privateSharedDHKey) {
+            this.privateSharedDHKey = privateSharedDHKey;
+            return this;
+        }
+
         public ClientSpec build() {
             ClientSpec clientSpec = new ClientSpec();
-            clientSpec.encryptionAlgorithmType = this.encryptionAlgorithmType;
-            clientSpec.encryptionAlgorithm = this.encryptionAlgorithm;
-            clientSpec.socket = this.socket;
+            clientSpec.setEncryptionAlgorithmType(encryptionAlgorithmType);
             clientSpec.keySize = this.keySize;
             clientSpec.hashingAlgorithm = this.hashingAlgorithm;
+            clientSpec.privateSharedDHKey = this.privateSharedDHKey;
+            clientSpec.publicRSAKey = this.publicRSAKey;
+            clientSpec.encryptionAlgorithm = this.encryptionAlgorithm;
+            clientSpec.socket = this.socket;
             return clientSpec;
         }
     }

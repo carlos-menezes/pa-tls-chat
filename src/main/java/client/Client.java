@@ -15,9 +15,11 @@ import shared.keys.schemes.SymmetricEncryptionScheme;
 
 import javax.crypto.SecretKey;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.Socket;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(name = "client", mixinStandardHelpOptions = true, version = "0.1")
@@ -51,8 +53,13 @@ public class Client implements Callable<Integer> {
 
     private Socket socket;
     private EncryptionAlgorithmType encryptionAlgorithmType;
-    private SecretKey symmetricKey; // DES, ThreeDES or AES key
-    private KeyPair asymmetricKey; // RSA key
+
+    // DES, 3DES and AES
+    private BigInteger privateSharedDHKey;
+
+    // RSA
+    private KeyPair RSAKeys;
+    private PublicKey serverRSAKey;
 
     @Override
     public Integer call() throws Exception {
@@ -63,10 +70,8 @@ public class Client implements Callable<Integer> {
             this.encryptionAlgorithmType = encryptionValidator.getValidators()
                                                               .get(this.encryptionAlgorithm)
                                                               .getType();
-            switch (this.encryptionAlgorithmType) {
-                case SYMMETRIC -> this.symmetricKey = SymmetricEncryptionScheme.generateKey(this.encryptionAlgorithm, this.keySize);
-                case ASYMMETRIC -> this.asymmetricKey = AsymmetricEncryptionScheme.generateKeys(
-                        this.encryptionAlgorithm, this.keySize);
+            if (this.encryptionAlgorithmType == EncryptionAlgorithmType.ASYMMETRIC) {
+                this.RSAKeys = AsymmetricEncryptionScheme.generateKeys(this.encryptionAlgorithm, this.keySize);
             }
         } catch (InvalidEncryptionAlgorithmException | InvalidKeySizeException | NoSuchAlgorithmException e) {
             // TODO: appropriate logging
@@ -131,11 +136,25 @@ public class Client implements Callable<Integer> {
         return encryptionAlgorithmType;
     }
 
-    public SecretKey getSymmetricKey() {
-        return symmetricKey;
+    public BigInteger getPrivateSharedDHKey() {
+        return privateSharedDHKey;
     }
 
-    public KeyPair getAsymmetricKey() {
-        return asymmetricKey;
+    public KeyPair getRSAKeys() {
+        return RSAKeys;
+    }
+
+    public PublicKey getServerRSAKey() {
+        return serverRSAKey;
+    }
+
+    public Client setServerRSAKey(PublicKey serverRSAKey) {
+        this.serverRSAKey = serverRSAKey;
+        return this;
+    }
+
+    public Client setPrivateSharedDHKey(BigInteger privateSharedDHKey) {
+        this.privateSharedDHKey = privateSharedDHKey;
+        return this;
     }
 }
