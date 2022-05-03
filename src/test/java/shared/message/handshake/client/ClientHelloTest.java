@@ -1,4 +1,4 @@
-package shared.message.handshake;
+package shared.message.handshake.client;
 
 import client.Client;
 import org.junit.jupiter.api.BeforeEach;

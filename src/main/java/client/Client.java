@@ -11,9 +11,7 @@ import shared.encryption.validator.exceptions.InvalidKeySizeException;
 import shared.hashing.validator.HashingValidator;
 import shared.hashing.validator.exceptions.InvalidHashingAlgorithmException;
 import shared.keys.schemes.AsymmetricEncryptionScheme;
-import shared.keys.schemes.SymmetricEncryptionScheme;
 
-import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.Socket;
@@ -55,7 +53,8 @@ public class Client implements Callable<Integer> {
     private EncryptionAlgorithmType encryptionAlgorithmType;
 
     // DES, 3DES and AES
-    private BigInteger privateSharedDHKey;
+    // This key is actually the shared private Diffie-Hellman key
+    private BigInteger symmetricKey;
 
     // RSA
     private KeyPair RSAKeys;
@@ -71,7 +70,7 @@ public class Client implements Callable<Integer> {
                                                               .get(this.encryptionAlgorithm)
                                                               .getType();
             if (this.encryptionAlgorithmType == EncryptionAlgorithmType.ASYMMETRIC) {
-                this.RSAKeys = AsymmetricEncryptionScheme.generateKeys(this.encryptionAlgorithm, this.keySize);
+                this.RSAKeys = AsymmetricEncryptionScheme.generateKeys(this.keySize);
             }
         } catch (InvalidEncryptionAlgorithmException | InvalidKeySizeException | NoSuchAlgorithmException e) {
             // TODO: appropriate logging
@@ -136,8 +135,8 @@ public class Client implements Callable<Integer> {
         return encryptionAlgorithmType;
     }
 
-    public BigInteger getPrivateSharedDHKey() {
-        return privateSharedDHKey;
+    public BigInteger getSymmetricKey() {
+        return symmetricKey;
     }
 
     public KeyPair getRSAKeys() {
@@ -153,8 +152,8 @@ public class Client implements Callable<Integer> {
         return this;
     }
 
-    public Client setPrivateSharedDHKey(BigInteger privateSharedDHKey) {
-        this.privateSharedDHKey = privateSharedDHKey;
+    public Client setSymmetricKey(BigInteger symmetricKey) {
+        this.symmetricKey = symmetricKey;
         return this;
     }
 }

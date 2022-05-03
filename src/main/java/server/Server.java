@@ -42,8 +42,8 @@ public class Server implements Callable<Integer> {
 
     private static void populateRSAKeys() throws NoSuchAlgorithmException {
         // TODO: loop nos tamanhos das chaves RSA no RSAValidator
-        Server.RSAKeys.put(1024, AsymmetricEncryptionScheme.generateKeys("RSA", 1024));
-        Server.RSAKeys.put(2048, AsymmetricEncryptionScheme.generateKeys("RSA", 2048));
-        Server.RSAKeys.put(4096, AsymmetricEncryptionScheme.generateKeys("RSA", 4096));
+        Server.RSAKeys.put(1024, AsymmetricEncryptionScheme.generateKeys(1024));
+        Server.RSAKeys.put(2048, AsymmetricEncryptionScheme.generateKeys(2048));
+        Server.RSAKeys.put(4096, AsymmetricEncryptionScheme.generateKeys(4096));
     }
 }

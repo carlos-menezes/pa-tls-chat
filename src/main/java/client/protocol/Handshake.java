@@ -64,7 +64,7 @@ public class Handshake implements Callable<Integer> {
         } else {
             privateSharedDHKey = DiffieHellman.computePrivateKey(serverPublicDHKey, privateDHKey);
         }
-        this.client.setPrivateSharedDHKey(privateSharedDHKey);
+        this.client.setSymmetricKey(privateSharedDHKey);
 
         return CommandLine.ExitCode.OK;
     }
