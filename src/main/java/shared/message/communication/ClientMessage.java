@@ -4,18 +4,27 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 /**
- * The <code>ClientMessage</code> class represents all the operations executed in a message sent from a client.
+ * The <code>ClientMessage</code> class represents a message sent from a client.
  * Extracts an <code>array</code> of user that the message is going to be sent to and extracts the message itself.
+ * Extends {@link Message}.
  */
-public class ClientMessage {
+public class ClientMessage extends Message{
     private static final String USER_DECORATOR = "@";
     private static final String WORD_DELIMITER = " ";
     private static final String USER_DELIMITER = ",";
 
+    private final ArrayList<String> users;
+
     /**
-     * This class has a private constructor so that it cannot be initialized
+     * Creates a new <code>ClientMessage</code> object by specifying the raw message sent from the client
+     * and the hash of the raw message.
+     *
+     * @param message Raw message sent from the client.
+     * @param hash Hash of the raw message.
      */
-    private ClientMessage() {
+    public ClientMessage(String message, String hash) {
+        super(extractMessage(message), hash);
+        this.users = extractUsers(message);
     }
 
     /**
@@ -25,7 +34,7 @@ public class ClientMessage {
      * @param originalMessage Original message sent from the client.
      * @return <code>ArrayList</code> of all the users that the message is going to be sent to.
      */
-    public static ArrayList<String> getUsers(String originalMessage) {
+    private static ArrayList<String> extractUsers(String originalMessage) {
         // If the there is no user specified in the message it's going to be a broadcast
         if (!originalMessage.startsWith(USER_DECORATOR))
             return new ArrayList<>(Collections.singletonList("broadcast"));
@@ -50,7 +59,7 @@ public class ClientMessage {
      * @param originalMessage Original message sent from the client.
      * @return The message that is going to be sent to the other clients
      */
-    public static String getMessage(String originalMessage) {
+    private static String extractMessage(String originalMessage) {
         // Message to be returned
         StringBuilder message = new StringBuilder();
         String[] splitMessage = originalMessage.split(WORD_DELIMITER);
@@ -62,5 +71,14 @@ public class ClientMessage {
                        .append(e.equals(splitMessage[splitMessage.length - 1]) ? "" : WORD_DELIMITER);
 
         return message.toString();
+    }
+
+    /**
+     * Method that returns the users that the message is going to be sent to.
+     *
+     * @return <code>ArrayList</code> of all the users that the message is going to be sent to.
+     */
+    public ArrayList<String> getUsers() {
+        return users;
     }
 }
