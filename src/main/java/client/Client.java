@@ -11,13 +11,17 @@ import shared.encryption.validator.exceptions.InvalidKeySizeException;
 import shared.hashing.validator.HashingValidator;
 import shared.hashing.validator.exceptions.InvalidHashingAlgorithmException;
 import shared.keys.schemes.AsymmetricEncryptionScheme;
+import shared.message.communication.ServerMessage;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.util.Scanner;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(name = "client", mixinStandardHelpOptions = true, version = "0.1")
@@ -59,6 +63,10 @@ public class Client implements Callable<Integer> {
     // RSA
     private KeyPair RSAKeys;
     private PublicKey serverRSAKey;
+
+    // Streams
+    private ObjectOutputStream objectOutputStream;
+    private ObjectInputStream objectInputStream;
 
     @Override
     public Integer call() throws Exception {
@@ -102,13 +110,46 @@ public class Client implements Callable<Integer> {
         // Initialize client's socket
         try {
             this.socket = new Socket(host, port);
+            this.objectOutputStream = new ObjectOutputStream(this.socket.getOutputStream());
+            this.objectInputStream = new ObjectInputStream(this.socket.getInputStream());
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         Handshake handshake = new Handshake(this);
         handshake.call();
+
+        while(this.socket.isConnected()) {
+            Scanner usrInput = new Scanner( System.in );
+            String message = usrInput.nextLine( );
+            System.out.println("Message was sent");
+            objectOutputStream.writeObject(message);
+            objectOutputStream.flush();
+        }
+
         return null;
+    }
+
+    private void readMessages() {
+        new Thread(() -> {
+            while(this.socket.isConnected()) {
+                try {
+                    ServerMessage serverMessage = (ServerMessage) this.objectInputStream.readObject();
+                } catch (IOException | ClassNotFoundException e) {
+                    try {
+                        closeConnection();
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            }
+        });
+    }
+
+    private void closeConnection() throws IOException {
+        this.socket.close();
+        this.objectOutputStream.close();
+        this.objectInputStream.close();
     }
 
     public String getEncryptionAlgorithm() {
@@ -145,6 +186,14 @@ public class Client implements Callable<Integer> {
 
     public PublicKey getServerRSAKey() {
         return serverRSAKey;
+    }
+
+    public ObjectOutputStream getObjectOutputStream() {
+        return objectOutputStream;
+    }
+
+    public ObjectInputStream getObjectInputStream() {
+        return objectInputStream;
     }
 
     public Client setServerRSAKey(PublicKey serverRSAKey) {

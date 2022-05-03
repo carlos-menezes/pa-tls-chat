@@ -24,10 +24,8 @@ public class Handshake implements Callable<Integer> {
 
     public Handshake(Client client) throws IOException {
         this.client = client;
-        this.objectOutputStream = new ObjectOutputStream(this.client.getSocket()
-                                                                    .getOutputStream());
-        this.objectInputStream = new ObjectInputStream(this.client.getSocket()
-                                                                  .getInputStream());
+        this.objectInputStream = client.getObjectInputStream();
+        this.objectOutputStream = client.getObjectOutputStream();
     }
 
     @Override

@@ -34,16 +34,29 @@ public class ClientHandler implements Runnable {
 
     @Override
     public void run() {
-        try {
-            Object message = this.objectInputStream.readObject();
-            if (message instanceof ClientHello) {
-                this.handleClientHello((ClientHello) message);
-            }
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
+        while(this.socket.isConnected()) {
+            try {
+                Object message = this.objectInputStream.readObject();
+                if (message instanceof ClientHello) {
+                    this.handleClientHello((ClientHello) message);
+                    // TODO: appropriate logger (say something like "@John joined the chat")
+                    // TODO: broadcast to say that the user joined
+                } else {
+                    /*
+                    TODO:
+                    - receive ClientMessage
+                    - make hashing and encryption conversions
+                    - send ServerMessage to clients
+                     */
 
-        Server.clients.remove(this.getName());
+                    System.out.println(this.getName() + ": " + message);
+                }
+            } catch (IOException | ClassNotFoundException e) {
+                break;
+            }
+        }
+        // TODO: broadcast that the user disconnected
+        Server.removeClient(this.getName());
     }
 
     private void sendMessage(Serializable message) throws IOException {

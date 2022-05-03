@@ -11,13 +11,16 @@ import java.net.Socket;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Semaphore;
 
 @CommandLine.Command(name = "server", mixinStandardHelpOptions = true, version = "0.1")
 public class Server implements Callable<Integer> {
     private ServerSocket serverSocket;
     public static HashMap<String, ClientSpec> clients;
     public static HashMap<Integer, KeyPair> RSAKeys;
+    private static final Semaphore _sem = new Semaphore(1);
 
     @CommandLine.Option(names = {"--port"}, description = "Server to run the port on", required = true)
     private Integer port;
@@ -41,9 +44,20 @@ public class Server implements Callable<Integer> {
     }
 
     private static void populateRSAKeys() throws NoSuchAlgorithmException {
-        // TODO: loop nos tamanhos das chaves RSA no RSAValidator
-        Server.RSAKeys.put(1024, AsymmetricEncryptionScheme.generateKeys(1024));
-        Server.RSAKeys.put(2048, AsymmetricEncryptionScheme.generateKeys(2048));
-        Server.RSAKeys.put(4096, AsymmetricEncryptionScheme.generateKeys(4096));
+        List<Integer> keySizes = new RSAValidator().getKeySizes();
+        for (Integer keySize: keySizes) {
+            Server.RSAKeys.put(keySize, AsymmetricEncryptionScheme.generateKeys(keySize));
+        }
+    }
+
+    public static void removeClient(String user) {
+        try {
+            _sem.acquire();
+            Server.clients.remove(user);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            _sem.release();
+        }
     }
 }
