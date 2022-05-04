@@ -5,6 +5,9 @@ import shared.encryption.validator.EncryptionAlgorithmType;
 import shared.encryption.validator.RSAValidator;
 import shared.keys.schemes.AsymmetricEncryptionScheme;
 import shared.keys.schemes.DiffieHellman;
+import shared.message.communication.ClientMessage;
+import shared.message.communication.Message;
+import shared.message.communication.ServerMessage;
 import shared.message.handshake.client.ClientHello;
 import shared.message.handshake.server.ServerError;
 import shared.message.handshake.server.ServerHello;
@@ -18,6 +21,7 @@ import java.net.Socket;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.interfaces.RSAKey;
+import java.util.ArrayList;
 import java.util.Objects;
 
 public class ClientHandler implements Runnable {
@@ -40,16 +44,18 @@ public class ClientHandler implements Runnable {
                 if (message instanceof ClientHello) {
                     this.handleClientHello((ClientHello) message);
                     // TODO: appropriate logger (say something like "@John joined the chat")
-                    // TODO: broadcast to say that the user joined
+                    this.broadcast(this.getName() + ": Joined the chat");
                 } else {
                     /*
                     TODO:
-                    - receive ClientMessage
-                    - make hashing and encryption conversions
-                    - send ServerMessage to clients
-                     */
-
-                    System.out.println(this.getName() + ": " + message);
+                    - receive message
+                    - decrypt
+                    - check hash
+                    - redirectMessage()
+                    */
+                    ClientMessage msg = (ClientMessage) message;
+                    System.out.println(this.getName() + ": " + msg.getMessage());
+                    redirectMessage(msg);
                 }
             } catch (IOException | ClassNotFoundException e) {
                 break;
@@ -59,16 +65,45 @@ public class ClientHandler implements Runnable {
         Server.removeClient(this.getName());
     }
 
-    private void sendMessage(Serializable message) throws IOException {
-        this.objectOutputStream.writeObject(message);
-        this.objectOutputStream.flush();
+    private void redirectMessage(ClientMessage message) throws IOException {
+        ServerMessage msg = message.parseToServerMessage(this.getName(), "123");
+        ArrayList<String> users = message.getUsers();
+
+        if(users.get(0).equals("broadcast")) {
+            this.broadcast(msg);
+        } else {
+            for (String user : users) {
+                try {
+                    // TODO: encrypt based on each client and generate hash
+                    this.sendMessage(Server.clients.get(user).getObjectOutputStream(), msg);
+                } catch (NullPointerException e) {
+                    // TODO: proper logging
+                    System.out.println("User nao existe");
+                }
+            }
+        }
+
+    }
+
+    private void broadcast(Serializable message) throws IOException {
+        for (String user : Server.clients.keySet()) {
+            if (!Objects.equals(user, this.getName())) {
+                // TODO: encrypt based on each client and generate hash
+                this.sendMessage(Server.clients.get(user).getObjectOutputStream(), message);
+            }
+        }
+    }
+
+    private void sendMessage(ObjectOutputStream objectOutputStream, Serializable message) throws IOException {
+        objectOutputStream.writeObject(message);
+        objectOutputStream.flush();
     }
 
     private void handleClientHello(ClientHello message) throws IOException {
         // Check if username already exists
         if (Server.clients.containsKey(message.getName())) {
             ServerError serverError = new ServerError(ServerError.USERNAME_IN_USE);
-            this.sendMessage(serverError);
+            this.sendMessage(this.objectOutputStream, serverError);
         } else {
             this.name = message.getName();
             BigInteger privateDHKey = DiffieHellman.generatePrivateKey();
@@ -81,7 +116,9 @@ public class ClientHandler implements Runnable {
                                                                            .withHashingAlgorithm(
                                                                                    message.getHashingAlgorithm())
                                                                            .withEncryptionAlgorithmType(
-                                                                                   message.getEncryptionAlgorithmType());
+                                                                                   message.getEncryptionAlgorithmType())
+                                                                           .withObjectInputStream(this.objectInputStream)
+                                                                           .withObjectOutputStream(this.objectOutputStream);
 
             if (message.getEncryptionAlgorithmType() == EncryptionAlgorithmType.ASYMMETRIC) {
                 clientSpecBuilder.withPublicRSAKey(message.getPublicRSAKey());
@@ -108,7 +145,7 @@ public class ClientHandler implements Runnable {
                 serverHelloBuilder.withPublicDHKey(publicDHKey);
             }
             ServerHello serverHello = serverHelloBuilder.build();
-            this.sendMessage(serverHello);
+            this.sendMessage(this.objectOutputStream, serverHello);
         }
     }
 

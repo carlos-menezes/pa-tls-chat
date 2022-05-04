@@ -33,6 +33,8 @@ public class Server implements Callable<Integer> {
         Server.RSAKeys = new HashMap<>();
         Server.populateRSAKeys();
 
+        System.out.println("Server running on port " + this.port);
+
         while (!this.serverSocket.isClosed()) {
             Socket client = this.serverSocket.accept();
             ClientHandler clientHandler = new ClientHandler(client);

@@ -11,6 +11,7 @@ import shared.encryption.validator.exceptions.InvalidKeySizeException;
 import shared.hashing.validator.HashingValidator;
 import shared.hashing.validator.exceptions.InvalidHashingAlgorithmException;
 import shared.keys.schemes.AsymmetricEncryptionScheme;
+import shared.message.communication.ClientMessage;
 import shared.message.communication.ServerMessage;
 
 import java.io.IOException;
@@ -117,24 +118,35 @@ public class Client implements Callable<Integer> {
         }
 
         Handshake handshake = new Handshake(this);
-        handshake.call();
+        Integer hasError = handshake.call();
+        if (hasError == 1) return CommandLine.ExitCode.SOFTWARE;
 
+        System.out.println("Welcome to the PA-TLS-CHAT, start sending messages now!!\n");
+        this.readMessages();
         while(this.socket.isConnected()) {
             Scanner usrInput = new Scanner( System.in );
             String message = usrInput.nextLine( );
-            System.out.println("Message was sent");
-            objectOutputStream.writeObject(message);
+            ClientMessage msg = new ClientMessage(message, "123");
+            objectOutputStream.writeObject(msg);
             objectOutputStream.flush();
         }
 
         return null;
     }
 
+    /**
+     * Method thar creates a thread to handle all the messages received from the server
+     */
     private void readMessages() {
         new Thread(() -> {
             while(this.socket.isConnected()) {
                 try {
-                    ServerMessage serverMessage = (ServerMessage) this.objectInputStream.readObject();
+                    Object serverMessage = this.objectInputStream.readObject();
+                    if(serverMessage instanceof ServerMessage)
+                        System.out.println(((ServerMessage) serverMessage).getSender() + ": " + ((ServerMessage) serverMessage).getMessage());
+                    else
+                        System.out.println(serverMessage);
+                    // TODO: appropriate logging
                 } catch (IOException | ClassNotFoundException e) {
                     try {
                         closeConnection();
@@ -143,7 +155,7 @@ public class Client implements Callable<Integer> {
                     }
                 }
             }
-        });
+        }).start();
     }
 
     private void closeConnection() throws IOException {

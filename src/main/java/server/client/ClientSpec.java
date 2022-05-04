@@ -2,6 +2,9 @@ package server.client;
 
 import shared.encryption.validator.EncryptionAlgorithmType;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.security.PublicKey;
@@ -21,6 +24,9 @@ public class ClientSpec {
     private EncryptionAlgorithmType encryptionAlgorithmType;
     private PublicKey publicRSAKey;
     private BigInteger privateSharedDHKey;
+
+    private ObjectInputStream objectInputStream;
+    private ObjectOutputStream objectOutputStream;
 
     public Socket getSocket() {
         return this.socket;
@@ -75,6 +81,14 @@ public class ClientSpec {
         return privateSharedDHKey;
     }
 
+    public ObjectInputStream getObjectInputStream() {
+        return this.objectInputStream;
+    }
+
+    public ObjectOutputStream getObjectOutputStream() {
+        return this.objectOutputStream;
+    }
+
     public static final class Builder {
         private Socket socket;
         private String encryptionAlgorithm;
@@ -84,10 +98,13 @@ public class ClientSpec {
         private PublicKey publicRSAKey;
         private BigInteger privateSharedDHKey;
 
+        private ObjectInputStream objectInputStream;
+        private ObjectOutputStream objectOutputStream;
+
         public Builder() {
         }
 
-        public Builder withSocket(Socket socket) {
+        public Builder withSocket(Socket socket) throws IOException {
             this.socket = socket;
             return this;
         }
@@ -122,6 +139,16 @@ public class ClientSpec {
             return this;
         }
 
+        public Builder withObjectOutputStream(ObjectOutputStream objectOutputStream) {
+            this.objectOutputStream = objectOutputStream;
+            return this;
+        }
+
+        public Builder withObjectInputStream(ObjectInputStream objectInputStream) {
+            this.objectInputStream = objectInputStream;
+            return this;
+        }
+
         public ClientSpec build() {
             ClientSpec clientSpec = new ClientSpec();
             clientSpec.setEncryptionAlgorithmType(encryptionAlgorithmType);
@@ -131,6 +158,9 @@ public class ClientSpec {
             clientSpec.publicRSAKey = this.publicRSAKey;
             clientSpec.encryptionAlgorithm = this.encryptionAlgorithm;
             clientSpec.socket = this.socket;
+
+            clientSpec.objectInputStream = this.objectInputStream;
+            clientSpec.objectOutputStream = this.objectOutputStream;
             return clientSpec;
         }
     }

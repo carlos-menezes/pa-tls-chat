@@ -1,10 +1,12 @@
 package shared.message.communication;
 
+import java.io.Serializable;
+
 /**
  * The <code>Message</code> abstract class represents the common attributes between the
  * {@link ClientMessage} and {@link ServerMessage}.
  */
-public abstract class Message {
+public abstract class Message implements Serializable {
 
     private final String message;
     private final String hash;
