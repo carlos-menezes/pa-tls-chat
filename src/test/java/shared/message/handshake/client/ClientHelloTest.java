@@ -4,7 +4,10 @@ import client.Client;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
+import shared.keys.schemes.DiffieHellman;
 import shared.message.handshake.ClientHello;
+
+import java.math.BigInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -25,5 +28,11 @@ class ClientHelloTest {
         assertEquals(this.clientHello.getEncryptionAlgorithm(), "AES");
         assertEquals(this.clientHello.getKeySize(), 256);
         assertEquals(this.clientHello.getHashingAlgorithm(), "SHA-256");
+
+        BigInteger privateKey = DiffieHellman.generatePrivateKey();
+        BigInteger publicKey = DiffieHellman.generatePublicKey(privateKey);
+
+        this.clientHello.setPublicDHKey(publicKey);
+        assertEquals(this.clientHello.getPublicDHKey(), publicKey);
     }
 }

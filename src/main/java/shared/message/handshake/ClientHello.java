@@ -34,36 +34,35 @@ public class ClientHello implements Serializable {
     }
 
     public String getEncryptionAlgorithm() {
-        return encryptionAlgorithm;
+        return this.encryptionAlgorithm;
     }
 
     public Integer getKeySize() {
-        return keySize;
+        return this.keySize;
     }
 
     public String getHashingAlgorithm() {
-        return hashingAlgorithm;
+        return this.hashingAlgorithm;
     }
 
     public String getName() {
-        return name;
+        return this.name;
     }
 
     public EncryptionAlgorithmType getEncryptionAlgorithmType() {
-        return encryptionAlgorithmType;
+        return this.encryptionAlgorithmType;
     }
 
     public BigInteger getPublicDHKey() {
-        return publicDHKey;
+        return this.publicDHKey;
     }
 
     public PublicKey getPublicRSAKey() {
-        return publicRSAKey;
+        return this.publicRSAKey;
     }
 
-    public ClientHello setPublicDHKey(BigInteger publicDHKey) {
+    public void setPublicDHKey(BigInteger publicDHKey) {
         this.publicDHKey = publicDHKey;
-        return this;
     }
 
     @Override
