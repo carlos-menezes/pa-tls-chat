@@ -4,7 +4,7 @@ import client.Client;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
-import shared.message.handshake.client.ClientHello;
+import shared.message.handshake.ClientHello;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

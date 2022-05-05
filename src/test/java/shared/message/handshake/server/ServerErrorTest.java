@@ -1,6 +1,7 @@
 package shared.message.handshake.server;
 
 import org.junit.jupiter.api.Test;
+import shared.message.handshake.ServerError;
 
 import static org.junit.jupiter.api.Assertions.*;
 

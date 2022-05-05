@@ -1,4 +1,4 @@
-package shared.message.handshake.server;
+package shared.message.handshake;
 
 import java.io.Serializable;
 

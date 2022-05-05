@@ -3,6 +3,7 @@ package shared.message.handshake.server;
 import org.junit.jupiter.api.Test;
 import shared.keys.schemes.AsymmetricEncryptionScheme;
 import shared.keys.schemes.DiffieHellman;
+import shared.message.handshake.ServerHello;
 
 import java.math.BigInteger;
 import java.security.KeyPair;

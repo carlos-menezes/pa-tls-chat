@@ -1,4 +1,4 @@
-package shared.message.handshake.client;
+package shared.message.handshake;
 
 import client.Client;
 import shared.encryption.validator.EncryptionAlgorithmType;
