@@ -1,6 +1,5 @@
 package server.client;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import shared.encryption.validator.EncryptionAlgorithmType;
 import shared.keys.schemes.AsymmetricEncryptionScheme;
@@ -18,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 class ClientSpecTest {
 
     @Test
-    void TestClientSpecAsymmetric() throws NoSuchAlgorithmException, IOException {
+    void TestClientSpecAsymmetric() throws NoSuchAlgorithmException {
         KeyPair rsaKeys = AsymmetricEncryptionScheme.generateKeys(1024);
         BigInteger privateSharedDHKey = DiffieHellman.generatePrivateKey();
         Socket socket = new Socket();
@@ -41,7 +40,7 @@ class ClientSpecTest {
     }
 
     @Test
-    void TestClientSpecSymmetric() throws IOException {
+    void TestClientSpecSymmetric() {
         BigInteger privateSharedDHKey = DiffieHellman.generatePrivateKey();
         Socket socket = new Socket();
         ClientSpec clientSpec = new ClientSpec.Builder()

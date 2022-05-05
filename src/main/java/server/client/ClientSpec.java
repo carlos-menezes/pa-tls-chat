@@ -48,31 +48,6 @@ public class ClientSpec {
         return this.encryptionAlgorithmType;
     }
 
-    private ClientSpec setSocket(Socket socket) {
-        this.socket = socket;
-        return this;
-    }
-
-    private ClientSpec setEncryptionAlgorithm(String encryptionAlgorithm) {
-        this.encryptionAlgorithm = encryptionAlgorithm;
-        return this;
-    }
-
-    private ClientSpec setKeySize(Integer keySize) {
-        this.keySize = keySize;
-        return this;
-    }
-
-    private ClientSpec setHashingAlgorithm(String hashingAlgorithm) {
-        this.hashingAlgorithm = hashingAlgorithm;
-        return this;
-    }
-
-    public ClientSpec setEncryptionAlgorithmType(EncryptionAlgorithmType encryptionAlgorithmType) {
-        this.encryptionAlgorithmType = encryptionAlgorithmType;
-        return this;
-    }
-
     public PublicKey getPublicRSAKey() {
         return publicRSAKey;
     }
@@ -104,7 +79,7 @@ public class ClientSpec {
         public Builder() {
         }
 
-        public Builder withSocket(Socket socket) throws IOException {
+        public Builder withSocket(Socket socket) {
             this.socket = socket;
             return this;
         }
@@ -151,7 +126,7 @@ public class ClientSpec {
 
         public ClientSpec build() {
             ClientSpec clientSpec = new ClientSpec();
-            clientSpec.setEncryptionAlgorithmType(encryptionAlgorithmType);
+            clientSpec.encryptionAlgorithmType = encryptionAlgorithmType;
             clientSpec.keySize = this.keySize;
             clientSpec.hashingAlgorithm = this.hashingAlgorithm;
             clientSpec.privateSharedDHKey = this.privateSharedDHKey;
