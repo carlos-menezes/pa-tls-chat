@@ -16,7 +16,6 @@ import shared.keys.schemes.AsymmetricEncryptionScheme;
 import shared.logging.Logger;
 import shared.message.communication.ClientMessage;
 import shared.message.communication.ServerMessage;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;

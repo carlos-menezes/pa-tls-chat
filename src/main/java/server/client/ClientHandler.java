@@ -51,7 +51,13 @@ public class ClientHandler implements Runnable {
                 break;
             }
         }
-        // TODO: broadcast that the user disconnected
+        try {
+            String leftMessage = Messages.userLeft(this.getName());
+            this.broadcast(leftMessage);
+            Logger.info(leftMessage);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         Server.removeClient(this.getName());
     }
 
@@ -144,6 +150,7 @@ public class ClientHandler implements Runnable {
 
             String joinMessage = Messages.userJoined(message.getName());
             this.broadcast(joinMessage);
+            Logger.info(joinMessage);
         }
     }
 
