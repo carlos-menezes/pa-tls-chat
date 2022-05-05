@@ -2,15 +2,15 @@ package server.client;
 
 import server.Server;
 import shared.encryption.validator.EncryptionAlgorithmType;
-import shared.encryption.validator.RSAValidator;
 import shared.keys.schemes.AsymmetricEncryptionScheme;
 import shared.keys.schemes.DiffieHellman;
+import shared.logging.Logger;
+import shared.logging.Messages;
 import shared.message.communication.ClientMessage;
-import shared.message.communication.Message;
 import shared.message.communication.ServerMessage;
-import shared.message.handshake.client.ClientHello;
-import shared.message.handshake.server.ServerError;
-import shared.message.handshake.server.ServerHello;
+import shared.message.handshake.ClientHello;
+import shared.message.handshake.ServerError;
+import shared.message.handshake.ServerHello;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -20,7 +20,6 @@ import java.math.BigInteger;
 import java.net.Socket;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.interfaces.RSAKey;
 import java.util.ArrayList;
 import java.util.Objects;
 
@@ -41,21 +40,12 @@ public class ClientHandler implements Runnable {
         while(this.socket.isConnected()) {
             try {
                 Object message = this.objectInputStream.readObject();
-                if (message instanceof ClientHello) {
-                    this.handleClientHello((ClientHello) message);
-                    // TODO: appropriate logger (say something like "@John joined the chat")
-                    this.broadcast(this.getName() + ": Joined the chat");
+                if (message instanceof ClientHello clientHello) {
+                    this.handleClientHello(clientHello);
+                } else if (message instanceof ClientMessage clientMessage) {
+                    this.handleClientMessage(clientMessage);
                 } else {
-                    /*
-                    TODO:
-                    - receive message
-                    - decrypt
-                    - check hash
-                    - redirectMessage()
-                    */
-                    ClientMessage msg = (ClientMessage) message;
-                    System.out.println(this.getName() + ": " + msg.getMessage());
-                    redirectMessage(msg);
+                    Logger.error("An invalid message was received.");
                 }
             } catch (IOException | ClassNotFoundException e) {
                 break;
@@ -65,20 +55,25 @@ public class ClientHandler implements Runnable {
         Server.removeClient(this.getName());
     }
 
-    private void redirectMessage(ClientMessage message) throws IOException {
-        ServerMessage msg = message.parseToServerMessage(this.getName(), "123");
-        ArrayList<String> users = message.getUsers();
+    private void handleClientMessage(ClientMessage clientMessage) throws IOException {
+        // 1. Attempt to decrypt the message
 
+        // . Redirect
+        redirectMessage(clientMessage);
+    }
+
+    private void redirectMessage(ClientMessage message) throws IOException {
+        ServerMessage serverMessage = new ServerMessage(this.getName(), message.getMessage());
+        ArrayList<String> users = message.getUsers();
         if(users.get(0).equals("broadcast")) {
-            this.broadcast(msg);
+            this.broadcast(serverMessage);
         } else {
             for (String user : users) {
                 try {
                     // TODO: encrypt based on each client and generate hash
-                    this.sendMessage(Server.clients.get(user).getObjectOutputStream(), msg);
+                    this.sendMessage(Server.clients.get(user).getObjectOutputStream(), serverMessage);
                 } catch (NullPointerException e) {
-                    // TODO: proper logging
-                    System.out.println("User nao existe");
+                    Logger.error("User does not exist");
                 }
             }
         }
@@ -146,6 +141,9 @@ public class ClientHandler implements Runnable {
             }
             ServerHello serverHello = serverHelloBuilder.build();
             this.sendMessage(this.objectOutputStream, serverHello);
+
+            String joinMessage = Messages.userJoined(message.getName());
+            this.broadcast(joinMessage);
         }
     }
 

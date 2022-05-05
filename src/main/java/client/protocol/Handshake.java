@@ -5,9 +5,10 @@ import picocli.CommandLine;
 import shared.encryption.validator.EncryptionAlgorithmType;
 import shared.keys.schemes.AsymmetricEncryptionScheme;
 import shared.keys.schemes.DiffieHellman;
-import shared.message.handshake.client.ClientHello;
-import shared.message.handshake.server.ServerError;
-import shared.message.handshake.server.ServerHello;
+import shared.logging.Logger;
+import shared.message.handshake.ClientHello;
+import shared.message.handshake.ServerError;
+import shared.message.handshake.ServerHello;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -22,7 +23,7 @@ public class Handshake implements Callable<Integer> {
     private final ObjectOutputStream objectOutputStream;
     private final ObjectInputStream objectInputStream;
 
-    public Handshake(Client client) throws IOException {
+    public Handshake(Client client) {
         this.client = client;
         this.objectInputStream = client.getObjectInputStream();
         this.objectOutputStream = client.getObjectOutputStream();
@@ -43,7 +44,7 @@ public class Handshake implements Callable<Integer> {
         Object serverReply = this.receiveMessage();
         if (serverReply instanceof ServerError) {
             // TODO: appropriate logging
-            System.out.println("ERROR: username already in use");
+            Logger.error("Username already in use.");
             return CommandLine.ExitCode.SOFTWARE;
         }
 

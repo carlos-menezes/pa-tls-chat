@@ -5,6 +5,7 @@ import server.client.ClientHandler;
 import server.client.ClientSpec;
 import shared.encryption.validator.RSAValidator;
 import shared.keys.schemes.AsymmetricEncryptionScheme;
+import shared.logging.Logger;
 
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -33,7 +34,7 @@ public class Server implements Callable<Integer> {
         Server.RSAKeys = new HashMap<>();
         Server.populateRSAKeys();
 
-        System.out.println("Server running on port " + this.port);
+        Logger.info(String.format("Server started on localhost:%d", this.port));
 
         while (!this.serverSocket.isClosed()) {
             Socket client = this.serverSocket.accept();
