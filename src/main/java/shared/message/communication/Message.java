@@ -9,18 +9,15 @@ import java.io.Serializable;
 public abstract class Message implements Serializable {
 
     private final String message;
-    private final String hash;
+    private String hash;
 
     /**
      * Creates a new <code>Message</code> object by specifying its message and corresponding hash.
      *
      * @param message The message to be sent
-     * @param hash The hash of the message, <code>null</code> if the client doesn't support
-     *             any hashing algorithm
      */
-    public Message(String message, String hash){
+    public Message(String message) {
         this.message = message;
-        this.hash = hash;
     }
 
     /**
@@ -43,15 +40,10 @@ public abstract class Message implements Serializable {
     }
 
     /**
-     * Method that parses a message to a {@link ServerMessage} by specifying the sender
-     * and the hash of the message.
-     *
-     * @param sender Message sender
-     * @param hash The hash of the message, <code>null</code> if the client doesn't support
-     *             any hashing algorithm
-     * @return A new {@link ServerMessage} object
+     * Sets the value of {@link #hash}.
+     * @param hash value of hash
      */
-    public ServerMessage parseToServerMessage(String sender, String hash) {
-        return new ServerMessage(sender, this.message, hash);
+    public void setHash(String hash) {
+        this.hash = hash;
     }
 }

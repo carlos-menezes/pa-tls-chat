@@ -8,7 +8,7 @@ import java.util.Collections;
  * Extracts an <code>array</code> of user that the message is going to be sent to and extracts the message itself.
  * Extends {@link Message}.
  */
-public class ClientMessage extends Message{
+public class ClientMessage extends Message {
     private static final String USER_DECORATOR = "@";
     private static final String WORD_DELIMITER = " ";
     private static final String USER_DELIMITER = ",";
@@ -20,10 +20,9 @@ public class ClientMessage extends Message{
      * and the hash of the raw message.
      *
      * @param message Raw message sent from the client.
-     * @param hash Hash of the raw message.
      */
-    public ClientMessage(String message, String hash) {
-        super(extractMessage(message), hash);
+    public ClientMessage(String message) {
+        super(extractMessage(message));
         this.users = extractUsers(message);
     }
 
@@ -36,8 +35,9 @@ public class ClientMessage extends Message{
      */
     private static ArrayList<String> extractUsers(String originalMessage) {
         // If the there is no user specified in the message it's going to be a broadcast
-        if (!originalMessage.startsWith(USER_DECORATOR))
+        if (!originalMessage.startsWith(USER_DECORATOR)) {
             return new ArrayList<>(Collections.singletonList("broadcast"));
+        }
 
         // Users with delimiter and decorator
         String splitMessage = originalMessage.split(WORD_DELIMITER)[0];
@@ -45,8 +45,9 @@ public class ClientMessage extends Message{
         String[] usersWithDecorator = splitMessage.split(USER_DELIMITER);
         ArrayList<String> users = new ArrayList<>();
         // Remove all the decorators
-        for (String user : usersWithDecorator)
+        for (String user : usersWithDecorator) {
             users.add(user.substring(1));
+        }
 
         return users;
     }
@@ -65,10 +66,13 @@ public class ClientMessage extends Message{
         String[] splitMessage = originalMessage.split(WORD_DELIMITER);
 
         for (String e : splitMessage)
-            // Append to the resulting message if it's not the users
-            if (!e.startsWith(USER_DECORATOR))
+        // Append to the resulting message if it's not the users
+        {
+            if (!e.startsWith(USER_DECORATOR)) {
                 message.append(e)
                        .append(e.equals(splitMessage[splitMessage.length - 1]) ? "" : WORD_DELIMITER);
+            }
+        }
 
         return message.toString();
     }

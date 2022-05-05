@@ -14,11 +14,9 @@ public class ServerMessage extends Message {
      *
      * @param sender The message sender.
      * @param message The message to be sent.
-     * @param hash The hash of the message, <code>null</code> if client doesn't support
-     *             any hashing algorithm.
      */
-    public ServerMessage(String sender, String message, String hash) {
-        super(message, hash);
+    public ServerMessage(String sender, String message) {
+        super(message);
         this.sender = sender;
     }
 
