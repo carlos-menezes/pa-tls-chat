@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.ByteBuffer;
@@ -32,10 +31,8 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 
 public class ClientHandler implements Runnable {
     private final Socket socket;
@@ -43,18 +40,26 @@ public class ClientHandler implements Runnable {
     private final ObjectOutputStream objectOutputStream;
     private String name;
 
+    /**
+     * Constructs a new {@link ClientHandler}.
+     *
+     * @param socket I/O socket
+     * @throws IOException if an I/O error occurs while writing/reading stream header
+     */
     public ClientHandler(Socket socket) throws IOException {
         this.socket = socket;
         this.objectInputStream = new ObjectInputStream(this.socket.getInputStream());
         this.objectOutputStream = new ObjectOutputStream(this.socket.getOutputStream());
     }
 
+    /**
+     * Runs the handshake protocol.
+     */
     @Override
     public void run() {
         while (this.socket.isConnected()) {
             try {
                 Object message = this.objectInputStream.readObject();
-
                 if (message instanceof ClientHello clientHello) {
                     this.handleClientHello(clientHello);
                 } else {
@@ -83,44 +88,55 @@ public class ClientHandler implements Runnable {
                         this.handleClientMessage(clientMessage);
                     }
                 }
-
-
             } catch (IOException | ClassNotFoundException | NoSuchAlgorithmException | InvalidKeyException e) {
                 break;
             }
         }
 
         try {
-            String leftMessage = Messages.userLeft(this.getName());
+            String leftMessage = Messages.userLeft(this.name);
             ServerUserStatusMessage serverUserStatusMessage = new ServerUserStatusMessage(leftMessage);
             this.broadcast(serverUserStatusMessage);
             Logger.info(leftMessage);
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            Server.removeClient(this.getName());
+            Server.clients.remove(this.name);
         }
     }
 
+    /**
+     * Broadcasts a message.
+     *
+     * @param message Message to broadcast.
+     * @throws IOException
+     */
     private void broadcast(Serializable message) throws IOException {
         for (String user : Server.clients.keySet()) {
-            if (!Objects.equals(user, this.getName())) {
-                this.sendMessage(Server.clients.get(user).getObjectOutputStream(), message);
+            if (!Objects.equals(user, this.name)) {
+                this.sendMessage(Server.clients.get(user)
+                                               .getObjectOutputStream(), message);
             }
         }
     }
 
+    /**
+     * Handles a {@link ClientMessage}.
+     *
+     * @param clientMessage message to handle
+     * @throws IOException
+     */
     private void handleClientMessage(ClientMessage clientMessage) throws IOException {
-        ServerMessage serverMessage = new ServerMessage(this.getName(), clientMessage.getMessage());
-        ArrayList<String> users = new ArrayList<>(clientMessage.getUsers());
-
-        if (users.get(0).equals("broadcast")) {
+        ServerMessage serverMessage = new ServerMessage(this.name, clientMessage.getMessage());
+        HashSet<String> users = new HashSet<>(clientMessage.getUsers());
+        if (users.isEmpty()) {
             this.broadcast(serverMessage);
         } else {
             for (String user : users) {
                 try {
                     ClientSpec clientSpec = Server.clients.get(user);
-                    SealedObject sealedObject = this.createEncryptedServerMessage(clientSpec, clientMessage);
+                    String messageContent = clientMessage.getMessage();
+                    SealedObject sealedObject = this.createEncryptedServerMessage(clientSpec, messageContent);
                     this.sendMessage(clientSpec.getObjectOutputStream(), sealedObject);
                 } catch (NullPointerException | NoSuchPaddingException | NoSuchAlgorithmException | IllegalBlockSizeException | InvalidKeyException e) {
                     Logger.error("User does not exist");
@@ -130,20 +146,31 @@ public class ClientHandler implements Runnable {
 
     }
 
-    private SealedObject createEncryptedServerMessage(ClientSpec clientSpec, ClientMessage clientMessage) throws
+    /**
+     * Creates a new {@link SealedObject} with the content of a {@link ClientMessage}.
+     *
+     * @param clientSpec     {@link ClientSpec}
+     * @param messageContent content of the message
+     * @return an {@link SealedObject} encrypted with the receiver's supported encryption algorithm
+     * @throws NoSuchPaddingException
+     * @throws NoSuchAlgorithmException
+     * @throws IllegalBlockSizeException
+     * @throws IOException
+     * @throws InvalidKeyException
+     */
+    private SealedObject createEncryptedServerMessage(ClientSpec clientSpec, String messageContent) throws
             NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, IOException,
             InvalidKeyException {
-        String message = clientMessage.getMessage();
-        ServerMessage serverMessage = new ServerMessage(this.name, message);
+        ServerMessage serverMessage = new ServerMessage(this.name, messageContent);
         String hashingAlgorithm = clientSpec.getHashingAlgorithm();
 
-        // If hashing is supported, verify hash
+        // If hashing is supported, create hash
         if (!hashingAlgorithm.isEmpty()) {
-            String hash = HashingEncoder.createDigest(hashingAlgorithm, message);
+            String hash = HashingEncoder.createDigest(hashingAlgorithm, messageContent);
             serverMessage.setHash(hash);
         }
 
-        SealedObject sealedObject;
+        SealedObject sealedObject = null;
         // Encrypt
         switch (clientSpec.getEncryptionAlgorithmType()) {
             case SYMMETRIC -> {
@@ -166,18 +193,29 @@ public class ClientHandler implements Runnable {
                 cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
                 sealedObject = new SealedObject(serverMessage, cipher);
             }
-            default -> throw new IllegalStateException("Unexpected value: " + clientSpec.getEncryptionAlgorithmType());
         }
 
         return sealedObject;
     }
 
-
+    /**
+     * Sends a message through the socket.
+     *
+     * @param objectOutputStream {@link ObjectOutputStream} to send the message through
+     * @param message            {@link shared.message.communication.Message} to be sent
+     * @throws IOException
+     */
     private void sendMessage(ObjectOutputStream objectOutputStream, Serializable message) throws IOException {
         objectOutputStream.writeObject(message);
         objectOutputStream.flush();
     }
 
+    /**
+     * Handles a {@link ClientHello} message.
+     *
+     * @param message message to be handled
+     * @throws IOException
+     */
     private void handleClientHello(ClientHello message) throws IOException {
         // Check if username already exists
         if (Server.clients.containsKey(message.getName())) {
@@ -228,19 +266,10 @@ public class ClientHandler implements Runnable {
             ServerHello serverHello = serverHelloBuilder.build();
             this.sendMessage(this.objectOutputStream, serverHello);
 
-            String joinMessage = Messages.userJoined(this.getName());
+            String joinMessage = Messages.userJoined(this.name);
             ServerUserStatusMessage serverUserStatusMessage = new ServerUserStatusMessage(joinMessage);
             this.broadcast(serverUserStatusMessage);
             Logger.info(joinMessage);
         }
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public ClientHandler setName(String name) {
-        this.name = name;
-        return this;
     }
 }
