@@ -1,10 +1,13 @@
 package shared.message.communication;
 
-import static org.junit.jupiter.api.Assertions.*;
-import org.junit.jupiter.api.*;
-import java.util.ArrayList;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ClientMessageTest {
 
@@ -24,8 +27,8 @@ public class ClientMessageTest {
     @DisplayName("Should be able to get all the clients")
     void testGetMultipleClients() {
         ClientMessage clientMessage = new ClientMessage(messageMultipleUsers);
-        ArrayList<String> users = clientMessage.getUsers();
-        ArrayList<String> expectedUsers = new ArrayList<>(Arrays.asList("user1", "user2", "user3"));
+        HashSet<String> users = clientMessage.getUsers();
+        HashSet<String> expectedUsers = new HashSet<>(Arrays.asList("user1", "user2", "user3"));
         assertEquals(users, expectedUsers);
     }
 
@@ -33,8 +36,8 @@ public class ClientMessageTest {
     @DisplayName("Should be able to get client if there is only one client")
     void testGetOneClient() {
         ClientMessage clientMessage = new ClientMessage(messageSingleUser);
-        ArrayList<String> user = clientMessage.getUsers();
-        ArrayList<String> expectedUser = new ArrayList<>(Collections.singletonList("user1"));
+        HashSet<String> user = clientMessage.getUsers();
+        HashSet<String> expectedUser = new HashSet<>(Collections.singletonList("user1"));
         assertEquals(user, expectedUser);
     }
 
@@ -42,8 +45,8 @@ public class ClientMessageTest {
     @DisplayName("Should be able to detect if it's a broadcast message")
     void testBroadcast() {
         ClientMessage clientMessage = new ClientMessage(messageBroadcast);
-        ArrayList<String> broadcast = clientMessage.getUsers();
-        ArrayList<String> expectedResult = new ArrayList<>(Collections.singletonList("broadcast"));
+        HashSet<String> broadcast = clientMessage.getUsers();
+        HashSet<String> expectedResult = new HashSet<>();
         assertEquals(broadcast, expectedResult);
     }
 

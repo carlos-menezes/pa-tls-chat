@@ -1,8 +1,7 @@
 package shared.message.communication;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.*;
 
 /**
  * The <code>ClientMessage</code> class represents a message sent from a client.
@@ -14,7 +13,7 @@ public class ClientMessage extends Message {
     private static final String WORD_DELIMITER = " ";
     private static final String USER_DELIMITER = ",";
 
-    private final ArrayList<String> users;
+    private final HashSet<String> users;
 
     /**
      * Creates a new <code>ClientMessage</code> object by specifying the raw message sent from the client
@@ -34,17 +33,17 @@ public class ClientMessage extends Message {
      * @param originalMessage Original message sent from the client.
      * @return <code>ArrayList</code> of all the users that the message is going to be sent to.
      */
-    private static ArrayList<String> extractUsers(String originalMessage) {
+    private static HashSet<String> extractUsers(String originalMessage) {
         // If the there is no user specified in the message it's going to be a broadcast
         if (!originalMessage.startsWith(USER_DECORATOR)) {
-            return new ArrayList<>(Collections.singletonList("broadcast"));
+            return new HashSet<>();
         }
 
         // Users with delimiter and decorator
         String splitMessage = originalMessage.split(WORD_DELIMITER)[0];
         // Users with the decorators
         String[] usersWithDecorator = splitMessage.split(USER_DELIMITER);
-        ArrayList<String> users = new ArrayList<>();
+        HashSet<String> users = new HashSet<>();
         // Remove all the decorators
         for (String user : usersWithDecorator) {
             users.add(user.substring(1));
@@ -83,7 +82,7 @@ public class ClientMessage extends Message {
      *
      * @return <code>ArrayList</code> of all the users that the message is going to be sent to.
      */
-    public ArrayList<String> getUsers() {
-        return users;
+    public HashSet<String> getUsers() {
+        return this.users;
     }
 }
