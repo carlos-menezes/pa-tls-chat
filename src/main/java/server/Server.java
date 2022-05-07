@@ -14,13 +14,11 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.ConcurrentHashMap;
 
 @CommandLine.Command(name = "server", mixinStandardHelpOptions = true, version = "0.1")
 public class Server implements Callable<Integer> {
-    private static final Lock lock = new ReentrantLock();
-    public static HashMap<String, ClientSpec> clients;
+    public static ConcurrentHashMap<String, ClientSpec> clients;
     public static HashMap<Integer, KeyPair> RSAKeys;
 
     @CommandLine.Option(names = {"--port"}, description = "Server to run the port on", required = true)
@@ -33,16 +31,10 @@ public class Server implements Callable<Integer> {
         }
     }
 
-    public static void removeClient(String user) {
-        lock.lock();
-        Server.clients.remove(user);
-        lock.unlock();
-    }
-
     @Override
     public Integer call() throws Exception {
         ServerSocket serverSocket = new ServerSocket(this.port);
-        Server.clients = new HashMap<>();
+        Server.clients = new ConcurrentHashMap<>();
 
         Server.RSAKeys = new HashMap<>();
         Server.populateRSAKeys();
