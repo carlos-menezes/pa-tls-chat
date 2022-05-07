@@ -2,6 +2,7 @@ package shared.keys.schemes;
 
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -11,6 +12,12 @@ import java.security.NoSuchAlgorithmException;
  * symmetric encryption algorithms (namely: DES, ThreeDES or AES).
  */
 public class SymmetricEncryptionScheme {
+    public static SecretKeySpec getSecretKeyFromBytes(Integer keySize, byte[] key, String algorithm) {
+        byte[] bytes = ByteBuffer.allocate(keySize / 8)
+                                 .put(key)
+                                 .array();
+        return new SecretKeySpec(bytes, algorithm);
+    }
     /**
      * Encrypt a byte array.
      *
@@ -20,12 +27,9 @@ public class SymmetricEncryptionScheme {
      * @param keySize size of secret key
      * @return encrypted <code>content</code>
      */
-    public static byte[] encrypt(String algorithm, byte[] content, SecretKey secretKey, Integer keySize) {
+    public static byte[] encrypt(String algorithm, byte[] content, byte[] secretKey, Integer keySize) {
         try {
-            byte[] bytes = ByteBuffer.allocate(keySize / 8)
-                                     .put((ByteBuffer) secretKey)
-                                     .array();
-            SecretKeySpec secretKeySpec = new SecretKeySpec(bytes, algorithm);
+            SecretKeySpec secretKeySpec = getSecretKeyFromBytes(keySize, secretKey, algorithm);
             Cipher cipher = Cipher.getInstance(algorithm);
             cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
             return cipher.doFinal(content);

@@ -46,4 +46,6 @@ public abstract class Message implements Serializable {
     public void setHash(String hash) {
         this.hash = hash;
     }
+
+
 }

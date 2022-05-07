@@ -1,5 +1,6 @@
 package shared.logging;
 
+import shared.message.communication.ServerMessage;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -11,20 +12,22 @@ public class Logger {
         ERROR
     }
 
-    private static void write(METHOD method, String message) {
+    private static void write(String method, String message) {
         LocalDateTime now = LocalDateTime.now();
         String formattedOutput = "";
         formattedOutput += String.format("[%s]\t", dateTimeFormatter.format(now));
-        formattedOutput += String.format("%s\t", method.toString());
+        formattedOutput += String.format("[%s]\t", method);
         formattedOutput += message;
         System.out.println(formattedOutput);
     }
 
     public static void info(String message) {
-        write(METHOD.INFO, message);
+        write(String.valueOf(METHOD.INFO), message);
     }
 
     public static void error(String message) {
-        write(METHOD.ERROR, message);
+        write(String.valueOf(METHOD.ERROR), message);
     }
+
+    public static void message(ServerMessage serverMessage) { write(serverMessage.getSender(), serverMessage.getMessage()); }
 }

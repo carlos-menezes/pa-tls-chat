@@ -2,7 +2,6 @@ package server.client;
 
 import shared.encryption.validator.EncryptionAlgorithmType;
 
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.BigInteger;
@@ -133,7 +132,6 @@ public class ClientSpec {
             clientSpec.publicRSAKey = this.publicRSAKey;
             clientSpec.encryptionAlgorithm = this.encryptionAlgorithm;
             clientSpec.socket = this.socket;
-
             clientSpec.objectInputStream = this.objectInputStream;
             clientSpec.objectOutputStream = this.objectOutputStream;
             return clientSpec;

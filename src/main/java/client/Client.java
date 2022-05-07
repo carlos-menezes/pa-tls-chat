@@ -13,19 +13,30 @@ import shared.hashing.validator.HashingValidator;
 import shared.hashing.validator.exceptions.InvalidHashingAlgorithmException;
 import shared.hashing.validator.exceptions.UnsupportedHashingAlgorithmException;
 import shared.keys.schemes.AsymmetricEncryptionScheme;
+import shared.keys.schemes.SymmetricEncryptionScheme;
 import shared.logging.Logger;
 import shared.message.communication.ClientMessage;
 import shared.message.communication.ServerMessage;
+import shared.message.communication.ServerUserStatusMessage;
+
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SealedObject;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
+import java.util.regex.Pattern;
 
 @CommandLine.Command(name = "client", mixinStandardHelpOptions = true, version = "0.1")
 public class Client implements Callable<Integer> {
@@ -55,8 +66,8 @@ public class Client implements Callable<Integer> {
 
     private EncryptionAlgorithmType encryptionAlgorithmType;
 
-    // DES, 3DES and AES
-    private BigInteger symmetricKey;
+    private BigInteger encryptionKey;
+
     // RSA
     private KeyPair RSAKeys;
     private PublicKey serverRSAKey;
@@ -131,14 +142,32 @@ public class Client implements Callable<Integer> {
         new Thread(() -> {
             while (this.socket.isConnected()) {
                 try {
-                    Object serverMessage = this.objectInputStream.readObject();
-                    if (serverMessage instanceof ServerMessage) {
-                        System.out.println(
-                                ((ServerMessage) serverMessage).getSender() + ": " + ((ServerMessage) serverMessage).getMessage());
+                    Object message = this.objectInputStream.readObject();
+                    if (message instanceof SealedObject sealedObject) {
+                        ServerMessage serverMessage = null;
+                        switch (this.getEncryptionAlgorithmType()) {
+                            case SYMMETRIC -> {
+                                SecretKeySpec secretKeySpec = SymmetricEncryptionScheme.getSecretKeyFromBytes(
+                                        this.getKeySize(),
+                                        this.encryptionKey.toByteArray(),
+                                        this.getEncryptionAlgorithm());
+                                serverMessage = (ServerMessage) sealedObject.getObject(secretKeySpec);
+                            }
+                            case ASYMMETRIC -> {
+                                SecretKeySpec secretKeySpec = SymmetricEncryptionScheme.getSecretKeyFromBytes(
+                                        256,
+                                        this.encryptionKey.toByteArray(),
+                                        "AES");
+                                serverMessage = (ServerMessage) sealedObject.getObject(secretKeySpec);
+                            }
+                        }
+                        Logger.message(serverMessage);
                     } else {
-                        System.out.println(serverMessage);
+                        if (message instanceof ServerUserStatusMessage serverUserStatusMessage) {
+                            Logger.info(serverUserStatusMessage.getMessage());
+                        }
                     }
-                } catch (IOException | ClassNotFoundException e) {
+                } catch (IOException | ClassNotFoundException | NoSuchAlgorithmException | InvalidKeyException e) {
                     try {
                         closeConnection();
                     } catch (IOException ex) {
@@ -150,20 +179,52 @@ public class Client implements Callable<Integer> {
         }).start();
     }
 
-    private void writeMessages() {
+    private void writeMessages() throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException,
+            IllegalBlockSizeException, IOException {
         while (this.socket.isConnected()) {
             this.displayInputPrompt();
             Scanner input = new Scanner(System.in);
             String message = input.nextLine();
             ClientMessage clientMessage = new ClientMessage(message);
+
+            boolean validMessage = Pattern.matches("^(?!\\s*$).+", clientMessage.getMessage());
+            if (!validMessage) {
+                Logger.error("Message must not be empty.");
+                continue;
+            }
+
             // Only hash the message if the client supports message hashing
             if (!this.hashingAlgorithm.isEmpty()) {
                 String hash = HashingEncoder.createDigest(this.hashingAlgorithm, clientMessage.getMessage());
                 clientMessage.setHash(hash);
             }
-            // TODO: encrypt the message
+
+            // Encrypt message
+            SealedObject sealedObject;
+            switch (this.encryptionAlgorithmType) {
+                case SYMMETRIC -> {
+                    Cipher cipher = Cipher.getInstance(this.encryptionAlgorithm);
+                    byte[] bytes = ByteBuffer.allocate(keySize / 8)
+                                             .put(this.encryptionKey.toByteArray())
+                                             .array();
+                    SecretKeySpec secretKeySpec = new SecretKeySpec(bytes, this.encryptionAlgorithm);
+                    cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
+                    sealedObject = new SealedObject(clientMessage, cipher);
+                }
+                case ASYMMETRIC -> {
+                    Cipher cipher = Cipher.getInstance("AES");
+                    byte[] bytes = ByteBuffer.allocate(256 / 8)
+                                             .put(this.encryptionKey.toByteArray())
+                                             .array();
+                    SecretKeySpec secretKeySpec = new SecretKeySpec(bytes, "AES");
+                    cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
+                    sealedObject = new SealedObject(clientMessage, cipher);
+                }
+                default -> throw new IllegalStateException("Unexpected value: " + this.encryptionAlgorithmType);
+            }
+
             try {
-                this.objectOutputStream.writeObject(clientMessage);
+                this.objectOutputStream.writeObject(sealedObject);
                 this.objectOutputStream.flush();
             } catch (IOException e) {
                 try {
@@ -211,12 +272,12 @@ public class Client implements Callable<Integer> {
         return encryptionAlgorithmType;
     }
 
-    public BigInteger getSymmetricKey() {
-        return symmetricKey;
+    public BigInteger getEncryptionKey() {
+        return encryptionKey;
     }
 
-    public void setSymmetricKey(BigInteger symmetricKey) {
-        this.symmetricKey = symmetricKey;
+    public void setEncryptionKey(BigInteger encryptionKey) {
+        this.encryptionKey = encryptionKey;
     }
 
     public KeyPair getRSAKeys() {
