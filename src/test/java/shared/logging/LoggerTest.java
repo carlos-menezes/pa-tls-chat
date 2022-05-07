@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LoggerTest {
     private final ByteArrayOutputStream outputStreamCaptor = new ByteArrayOutputStream();
-    private final String regex = "\\[\\d\\d:\\d\\d:\\d\\d\\]\\t[IE][NR][FR][O][R]*\\t\\X*";
+    private final String regex = "\\[\\d\\d:\\d\\d:\\d\\d]\\t\\[\\X*]\\t\\X*";
     private final Pattern pattern = Pattern.compile(regex);
 
     @BeforeEach
