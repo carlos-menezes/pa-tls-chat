@@ -1,5 +1,7 @@
 package server.client;
 
+import client.Client;
+import org.apache.commons.lang3.SerializationUtils;
 import server.Server;
 import shared.encryption.validator.EncryptionAlgorithmType;
 import shared.hashing.encoder.HashingEncoder;
@@ -11,14 +13,12 @@ import shared.logging.Messages;
 import shared.message.communication.ClientMessage;
 import shared.message.communication.ServerMessage;
 import shared.message.communication.ServerUserStatusMessage;
+import shared.message.communication.SignedClientMessage;
 import shared.message.handshake.ClientHello;
 import shared.message.handshake.ServerError;
 import shared.message.handshake.ServerHello;
 
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SealedObject;
+import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -27,10 +27,7 @@ import java.io.Serializable;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
+import java.security.*;
 import java.util.HashSet;
 import java.util.Objects;
 
@@ -60,36 +57,50 @@ public class ClientHandler implements Runnable {
         while (this.socket.isConnected()) {
             try {
                 Object message = this.objectInputStream.readObject();
+
                 if (message instanceof ClientHello clientHello) {
                     this.handleClientHello(clientHello);
                 } else {
-                    if (message instanceof SealedObject sealedObject) {
+                    if (message instanceof SignedClientMessage signedClientMessage) {
                         ClientSpec clientSpec = Server.clients.get(this.name);
+                        // Verifica a autenticidade
+                        Signature signature = Signature.getInstance("SHA256withRSA");
+                        signature.initVerify(clientSpec.getPublicSigningKey());
+                        signature.update(signedClientMessage.getSealedClientMessageBytes());
+                        boolean validSignature = signature.verify(signedClientMessage.getSigningHash());
+                        if(!validSignature) {
+                            continue;
+                        }
+
+                        SealedObject sealedObject = SerializationUtils.deserialize(signedClientMessage.getSealedClientMessageBytes());
                         ClientMessage clientMessage = null;
                         switch (clientSpec.getEncryptionAlgorithmType()) {
                             case SYMMETRIC -> {
                                 SecretKeySpec secretKeySpec = SymmetricEncryptionScheme.getSecretKeyFromBytes(
                                         clientSpec.getKeySize(),
                                         clientSpec.getPrivateSharedDHKey()
-                                                  .toByteArray(),
+                                                .toByteArray(),
                                         clientSpec.getEncryptionAlgorithm());
                                 clientMessage = (ClientMessage) sealedObject.getObject(secretKeySpec);
+                                System.out.println(clientMessage.getMessage());
                             }
                             case ASYMMETRIC -> {
-                                SecretKeySpec secretKeySpec = SymmetricEncryptionScheme.getSecretKeyFromBytes(
+                                /*SecretKeySpec secretKeySpec = SymmetricEncryptionScheme.getSecretKeyFromBytes(
                                         256,
                                         clientSpec.getPrivateSharedDHKey()
-                                                  .toByteArray(),
+                                                .toByteArray(),
                                         "AES");
-                                clientMessage = (ClientMessage) sealedObject.getObject(secretKeySpec);
+                                clientMessage = (ClientMessage) sealedObject.getObject(secretKeySpec);*/
                             }
                         }
 
-                        this.handleClientMessage(clientMessage);
+                        /*this.handleClientMessage(clientMessage);*/
                     }
                 }
             } catch (IOException | ClassNotFoundException | NoSuchAlgorithmException | InvalidKeyException e) {
                 break;
+            } catch (SignatureException e) {
+                e.printStackTrace();
             }
         }
 
@@ -115,7 +126,7 @@ public class ClientHandler implements Runnable {
         for (String user : Server.clients.keySet()) {
             if (!Objects.equals(user, this.name)) {
                 this.sendMessage(Server.clients.get(user)
-                                               .getObjectOutputStream(), message);
+                        .getObjectOutputStream(), message);
             }
         }
     }
@@ -176,9 +187,9 @@ public class ClientHandler implements Runnable {
             case SYMMETRIC -> {
                 Cipher cipher = Cipher.getInstance(clientSpec.getEncryptionAlgorithm());
                 byte[] bytes = ByteBuffer.allocate(clientSpec.getKeySize() / 8)
-                                         .put(clientSpec.getPrivateSharedDHKey()
-                                                        .toByteArray())
-                                         .array();
+                        .put(clientSpec.getPrivateSharedDHKey()
+                                .toByteArray())
+                        .array();
                 SecretKeySpec secretKeySpec = new SecretKeySpec(bytes, clientSpec.getEncryptionAlgorithm());
                 cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
                 sealedObject = new SealedObject(serverMessage, cipher);
@@ -186,9 +197,9 @@ public class ClientHandler implements Runnable {
             case ASYMMETRIC -> {
                 Cipher cipher = Cipher.getInstance("AES");
                 byte[] bytes = ByteBuffer.allocate(256 / 8)
-                                         .put(clientSpec.getPrivateSharedDHKey()
-                                                        .toByteArray())
-                                         .array();
+                        .put(clientSpec.getPrivateSharedDHKey()
+                                .toByteArray())
+                        .array();
                 SecretKeySpec secretKeySpec = new SecretKeySpec(bytes, "AES");
                 cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
                 sealedObject = new SealedObject(serverMessage, cipher);
@@ -227,17 +238,18 @@ public class ClientHandler implements Runnable {
             BigInteger publicDHKey = DiffieHellman.generatePublicKey(privateDHKey);
 
             ClientSpec.Builder clientSpecBuilder = new ClientSpec.Builder().withSocket(this.socket)
-                                                                           .withEncryptionAlgorithm(
-                                                                                   message.getEncryptionAlgorithm())
-                                                                           .withKeySize(message.getKeySize())
-                                                                           .withHashingAlgorithm(
-                                                                                   message.getHashingAlgorithm())
-                                                                           .withEncryptionAlgorithmType(
-                                                                                   message.getEncryptionAlgorithmType())
-                                                                           .withObjectInputStream(
-                                                                                   this.objectInputStream)
-                                                                           .withObjectOutputStream(
-                                                                                   this.objectOutputStream);
+                    .withEncryptionAlgorithm(
+                            message.getEncryptionAlgorithm())
+                    .withKeySize(message.getKeySize())
+                    .withHashingAlgorithm(
+                            message.getHashingAlgorithm())
+                    .withEncryptionAlgorithmType(
+                            message.getEncryptionAlgorithmType())
+                    .withPublicSigningKey(message.getPublicSigningKey())
+                    .withObjectInputStream(
+                            this.objectInputStream)
+                    .withObjectOutputStream(
+                            this.objectOutputStream);
 
             if (message.getEncryptionAlgorithmType() == EncryptionAlgorithmType.ASYMMETRIC) {
                 clientSpecBuilder.withPublicRSAKey(message.getPublicRSAKey());
@@ -253,12 +265,12 @@ public class ClientHandler implements Runnable {
             if (message.getEncryptionAlgorithmType() == EncryptionAlgorithmType.ASYMMETRIC) {
                 Integer clientRSAKeySize = message.getKeySize();
                 PublicKey rsaPublicKeyWithSupportedSize = Server.RSAKeys.get(clientRSAKeySize)
-                                                                        .getPublic();
+                        .getPublic();
                 serverHelloBuilder.withPublicRSAKey(rsaPublicKeyWithSupportedSize);
                 PrivateKey rsaPrivateKeyWithSupportedSize = Server.RSAKeys.get(clientRSAKeySize)
-                                                                          .getPrivate();
+                        .getPrivate();
                 byte[] encryptedRSAKey = AsymmetricEncryptionScheme.encrypt(publicDHKey.toByteArray(),
-                                                                            rsaPrivateKeyWithSupportedSize);
+                        rsaPrivateKeyWithSupportedSize);
                 serverHelloBuilder.withPublicDHKey(new BigInteger(Objects.requireNonNull(encryptedRSAKey)));
             } else {
                 serverHelloBuilder.withPublicDHKey(publicDHKey);

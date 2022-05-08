@@ -21,6 +21,7 @@ public class ClientSpec {
     private Integer keySize;
     private String hashingAlgorithm;
     private EncryptionAlgorithmType encryptionAlgorithmType;
+    private PublicKey publicSigningKey;
     private PublicKey publicRSAKey;
     private BigInteger privateSharedDHKey;
 
@@ -47,6 +48,10 @@ public class ClientSpec {
         return this.encryptionAlgorithmType;
     }
 
+    public PublicKey getPublicSigningKey() {
+        return publicSigningKey;
+    }
+
     public PublicKey getPublicRSAKey() {
         return publicRSAKey;
     }
@@ -69,6 +74,7 @@ public class ClientSpec {
         private Integer keySize;
         private String hashingAlgorithm;
         private EncryptionAlgorithmType encryptionAlgorithmType;
+        private PublicKey publicSigningKey;
         private PublicKey publicRSAKey;
         private BigInteger privateSharedDHKey;
 
@@ -103,6 +109,11 @@ public class ClientSpec {
             return this;
         }
 
+        public Builder withPublicSigningKey(PublicKey publicSigningKey) {
+            this.publicSigningKey = publicSigningKey;
+            return this;
+        }
+
         public Builder withPublicRSAKey(PublicKey publicRSAKey) {
             this.publicRSAKey = publicRSAKey;
             return this;
@@ -129,6 +140,7 @@ public class ClientSpec {
             clientSpec.keySize = this.keySize;
             clientSpec.hashingAlgorithm = this.hashingAlgorithm;
             clientSpec.privateSharedDHKey = this.privateSharedDHKey;
+            clientSpec.publicSigningKey = this.publicSigningKey;
             clientSpec.publicRSAKey = this.publicRSAKey;
             clientSpec.encryptionAlgorithm = this.encryptionAlgorithm;
             clientSpec.socket = this.socket;

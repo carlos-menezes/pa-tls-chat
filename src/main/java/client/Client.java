@@ -3,6 +3,7 @@ package client;
 import client.protocol.Handshake;
 import client.util.Generator;
 import client.util.Validator;
+import org.apache.commons.lang3.SerializationUtils;
 import picocli.CommandLine;
 import shared.encryption.validator.EncryptionAlgorithmType;
 import shared.encryption.validator.EncryptionValidator;
@@ -18,6 +19,7 @@ import shared.logging.Logger;
 import shared.message.communication.ClientMessage;
 import shared.message.communication.ServerMessage;
 import shared.message.communication.ServerUserStatusMessage;
+import shared.message.communication.SignedClientMessage;
 
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
@@ -202,26 +204,26 @@ public class Client implements Callable<Integer> {
             }
 
             // Encrypt message
-            String signedMessage = null;
+            SealedObject sealedObject;
+            SignedClientMessage signedClientMessage = null;
             switch (this.encryptionAlgorithmType) {
                 case SYMMETRIC -> {
                     // Encripta com o algoritmo escolhido (ex: DES)
                     byte[] sharedKeyBytes = this.getEncryptionKey().toByteArray();
-                    byte[] bytes = ByteBuffer.allocate( 8 ).put( sharedKeyBytes ).array( );
+                    byte[] bytes = ByteBuffer.allocate(  this.getKeySize() / 8 ).put( sharedKeyBytes ).array( );
                     SecretKeySpec secretKey = new SecretKeySpec( bytes , this.encryptionAlgorithm );
-                    Cipher algorithmCipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
-                    algorithmCipher.init( Cipher.ENCRYPT_MODE , secretKey );
-                    byte[] toSign = algorithmCipher.doFinal(clientMessage.getMessage().getBytes());
+                    Cipher cipher = Cipher.getInstance(this.encryptionAlgorithm);
+                    cipher.init( Cipher.ENCRYPT_MODE , secretKey );
+                    sealedObject = new SealedObject(clientMessage, cipher);
 
-                    // Assinatura com RSA (independentemente se o cliente suporta/escolheu RSA)
-                    Signature privateSignature = Signature.getInstance("SHA256withRSA");
-                    privateSignature.initSign(this.getSigningKeys().getPrivate());
-                    privateSignature.update(toSign);
+                    byte[] sealedObjectBytes = SerializationUtils.serialize(sealedObject);
 
-                    byte[] signature = privateSignature.sign();
-                    signedMessage = Base64.getEncoder().encodeToString(signature);
-                    System.out.println(this.getSigningKeys().getPrivate().toString());
-                    System.out.println(signedMessage);
+                    // Assina o objeto encriptado com RSA com hash SHA256
+                    Signature signature = Signature.getInstance("SHA256withRSA");
+                    signature.initSign(this.getSigningKeys().getPrivate());
+                    signature.update(sealedObjectBytes);
+                    byte[] digitalSignature = signature.sign();
+                    signedClientMessage = new SignedClientMessage(sealedObjectBytes,digitalSignature);
                 }
                 case ASYMMETRIC -> {
                     /*Cipher cipher = Cipher.getInstance("AES");
@@ -236,10 +238,11 @@ public class Client implements Callable<Integer> {
             }
 
             try {
-                this.objectOutputStream.writeObject(signedMessage);
+                this.objectOutputStream.writeObject(signedClientMessage);
                 this.objectOutputStream.flush();
             } catch (IOException e) {
                 try {
+                    System.out.println(e);
                     closeConnection();
                     return;
                 } catch (IOException ex) {

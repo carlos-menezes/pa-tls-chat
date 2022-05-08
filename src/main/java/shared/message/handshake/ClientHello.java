@@ -17,6 +17,7 @@ public class ClientHello implements Serializable {
     private final String name;
     private final EncryptionAlgorithmType encryptionAlgorithmType;
     private BigInteger publicDHKey;
+    private final PublicKey publicSigningKey;
     private final PublicKey publicRSAKey;
 
     public ClientHello(Client client) {
@@ -25,6 +26,7 @@ public class ClientHello implements Serializable {
         this.hashingAlgorithm = client.getHashingAlgorithm();
         this.name = client.getName();
         this.encryptionAlgorithmType = client.getEncryptionAlgorithmType();
+        this.publicSigningKey = client.getSigningKeys().getPublic();
 
         if (this.encryptionAlgorithmType == EncryptionAlgorithmType.ASYMMETRIC) {
             this.publicRSAKey = client.getRSAKeys().getPublic();
@@ -57,6 +59,10 @@ public class ClientHello implements Serializable {
         return this.publicDHKey;
     }
 
+    public PublicKey getPublicSigningKey() {
+        return this.publicSigningKey;
+    }
+
     public PublicKey getPublicRSAKey() {
         return this.publicRSAKey;
     }
@@ -73,6 +79,7 @@ public class ClientHello implements Serializable {
                 ", hashingAlgorithm='" + hashingAlgorithm + '\'' +
                 ", name='" + name + '\'' +
                 ", encryptionAlgorithmType=" + encryptionAlgorithmType +
+                ", publicSigningKey=" + publicSigningKey +
                 ", publicDHKey=" + publicDHKey +
                 ", publicRSAKey=" + publicRSAKey +
                 '}';
