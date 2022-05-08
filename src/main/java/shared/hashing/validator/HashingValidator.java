@@ -5,6 +5,7 @@ import shared.hashing.validator.exceptions.UnsupportedHashingAlgorithmException;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.Signature;
 import java.util.List;
 
 /**
@@ -19,7 +20,7 @@ public class HashingValidator {
      * Constructs a new {@link HashingValidator}.
      */
     public HashingValidator() {
-        this.validAlgorithms = List.of("MD4", "MD5", "SHA-256", "SHA-512");
+        this.validAlgorithms = List.of("MD5withRSA", "SHA256withRSA", "SHA512withRSA");
     }
 
     /**
@@ -43,7 +44,7 @@ public class HashingValidator {
      */
     public static boolean isHashingAlgorithmSupported(String algorithm) {
         try {
-            MessageDigest.getInstance(algorithm);
+            Signature.getInstance(algorithm);
             return true;
         } catch (NoSuchAlgorithmException e) {
             return false;

@@ -36,6 +36,7 @@ public class ClientHandler implements Runnable {
     private final ObjectInputStream objectInputStream;
     private final ObjectOutputStream objectOutputStream;
     private String name;
+    private PrivateKey RSAPrivateKey;
 
     /**
      * Constructs a new {@link ClientHandler}.
@@ -64,7 +65,7 @@ public class ClientHandler implements Runnable {
                     if (message instanceof SignedClientMessage signedClientMessage) {
                         ClientSpec clientSpec = Server.clients.get(this.name);
                         // Verifica a autenticidade
-                        Signature signature = Signature.getInstance("SHA256withRSA");
+                        Signature signature = Signature.getInstance(clientSpec.getHashingAlgorithm().isEmpty() ? "SHA256withRSA": clientSpec.getHashingAlgorithm());
                         signature.initVerify(clientSpec.getPublicSigningKey());
                         signature.update(signedClientMessage.getSealedClientMessageBytes());
                         boolean validSignature = signature.verify(signedClientMessage.getSigningHash());
@@ -85,12 +86,8 @@ public class ClientHandler implements Runnable {
                                 System.out.println(clientMessage.getMessage());
                             }
                             case ASYMMETRIC -> {
-                                /*SecretKeySpec secretKeySpec = SymmetricEncryptionScheme.getSecretKeyFromBytes(
-                                        256,
-                                        clientSpec.getPrivateSharedDHKey()
-                                                .toByteArray(),
-                                        "AES");
-                                clientMessage = (ClientMessage) sealedObject.getObject(secretKeySpec);*/
+                                clientMessage = (ClientMessage) sealedObject.getObject(this.RSAPrivateKey);
+                                System.out.println(clientMessage.getMessage());
                             }
                         }
 
@@ -269,6 +266,7 @@ public class ClientHandler implements Runnable {
                 serverHelloBuilder.withPublicRSAKey(rsaPublicKeyWithSupportedSize);
                 PrivateKey rsaPrivateKeyWithSupportedSize = Server.RSAKeys.get(clientRSAKeySize)
                         .getPrivate();
+                this.RSAPrivateKey = rsaPrivateKeyWithSupportedSize;
                 byte[] encryptedRSAKey = AsymmetricEncryptionScheme.encrypt(publicDHKey.toByteArray(),
                         rsaPrivateKeyWithSupportedSize);
                 serverHelloBuilder.withPublicDHKey(new BigInteger(Objects.requireNonNull(encryptedRSAKey)));

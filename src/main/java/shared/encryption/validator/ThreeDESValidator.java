@@ -10,6 +10,6 @@ public class ThreeDESValidator extends Validatable {
      * Constructs a new {@link ThreeDESValidator} object.
      */
     public ThreeDESValidator() {
-        super("ThreeDES", List.of(168), EncryptionAlgorithmType.SYMMETRIC);
+        super("ThreeDES", List.of(192), EncryptionAlgorithmType.SYMMETRIC);
     }
 }
