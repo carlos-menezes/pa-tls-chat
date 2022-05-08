@@ -19,10 +19,7 @@ import shared.message.communication.ClientMessage;
 import shared.message.communication.ServerMessage;
 import shared.message.communication.ServerUserStatusMessage;
 
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SealedObject;
+import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -30,10 +27,8 @@ import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.security.InvalidKeyException;
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
+import java.security.*;
+import java.util.Base64;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
@@ -68,6 +63,9 @@ public class Client implements Callable<Integer> {
 
     private BigInteger encryptionKey;
 
+    // Signing
+    private KeyPair SigningKeys;
+
     // RSA
     private KeyPair RSAKeys;
     private PublicKey serverRSAKey;
@@ -83,6 +81,8 @@ public class Client implements Callable<Integer> {
             EncryptionValidator encryptionValidator = new EncryptionValidator();
             encryptionValidator.validate(this.encryptionAlgorithm, this.keySize);
 
+            // Gera o par RSA para assinatura
+            this.SigningKeys = AsymmetricEncryptionScheme.generateKeys(4096);
             this.encryptionAlgorithmType = encryptionValidator.getValidators()
                                                               .get(this.encryptionAlgorithm)
                                                               .getType();
@@ -128,6 +128,8 @@ public class Client implements Callable<Integer> {
         if (hasError == 1) {
             return CommandLine.ExitCode.SOFTWARE;
         }
+
+        System.out.println(this.getEncryptionKey());
 
         Logger.info("Welcome to #pa-tls-chat.");
         this.readMessages();
@@ -180,7 +182,7 @@ public class Client implements Callable<Integer> {
     }
 
     private void writeMessages() throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException,
-            IllegalBlockSizeException, IOException {
+            IllegalBlockSizeException, IOException, BadPaddingException, SignatureException {
         while (this.socket.isConnected()) {
             this.displayInputPrompt();
             Scanner input = new Scanner(System.in);
@@ -200,31 +202,41 @@ public class Client implements Callable<Integer> {
             }
 
             // Encrypt message
-            SealedObject sealedObject;
+            String signedMessage = null;
             switch (this.encryptionAlgorithmType) {
                 case SYMMETRIC -> {
-                    Cipher cipher = Cipher.getInstance(this.encryptionAlgorithm);
-                    byte[] bytes = ByteBuffer.allocate(keySize / 8)
-                                             .put(this.encryptionKey.toByteArray())
-                                             .array();
-                    SecretKeySpec secretKeySpec = new SecretKeySpec(bytes, this.encryptionAlgorithm);
-                    cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
-                    sealedObject = new SealedObject(clientMessage, cipher);
+                    // Encripta com o algoritmo escolhido (ex: DES)
+                    byte[] sharedKeyBytes = this.getEncryptionKey().toByteArray();
+                    byte[] bytes = ByteBuffer.allocate( 8 ).put( sharedKeyBytes ).array( );
+                    SecretKeySpec secretKey = new SecretKeySpec( bytes , this.encryptionAlgorithm );
+                    Cipher algorithmCipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
+                    algorithmCipher.init( Cipher.ENCRYPT_MODE , secretKey );
+                    byte[] toSign = algorithmCipher.doFinal(clientMessage.getMessage().getBytes());
+
+                    // Assinatura com RSA (independentemente se o cliente suporta/escolheu RSA)
+                    Signature privateSignature = Signature.getInstance("SHA256withRSA");
+                    privateSignature.initSign(this.getSigningKeys().getPrivate());
+                    privateSignature.update(toSign);
+
+                    byte[] signature = privateSignature.sign();
+                    signedMessage = Base64.getEncoder().encodeToString(signature);
+                    System.out.println(this.getSigningKeys().getPrivate().toString());
+                    System.out.println(signedMessage);
                 }
                 case ASYMMETRIC -> {
-                    Cipher cipher = Cipher.getInstance("AES");
+                    /*Cipher cipher = Cipher.getInstance("AES");
                     byte[] bytes = ByteBuffer.allocate(256 / 8)
                                              .put(this.encryptionKey.toByteArray())
                                              .array();
                     SecretKeySpec secretKeySpec = new SecretKeySpec(bytes, "AES");
                     cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
-                    sealedObject = new SealedObject(clientMessage, cipher);
+                    sealedObject = new SealedObject(clientMessage, cipher);*/
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + this.encryptionAlgorithmType);
             }
 
             try {
-                this.objectOutputStream.writeObject(sealedObject);
+                this.objectOutputStream.writeObject(signedMessage);
                 this.objectOutputStream.flush();
             } catch (IOException e) {
                 try {
@@ -278,6 +290,10 @@ public class Client implements Callable<Integer> {
 
     public void setEncryptionKey(BigInteger encryptionKey) {
         this.encryptionKey = encryptionKey;
+    }
+
+    public KeyPair getSigningKeys() {
+        return SigningKeys;
     }
 
     public KeyPair getRSAKeys() {
