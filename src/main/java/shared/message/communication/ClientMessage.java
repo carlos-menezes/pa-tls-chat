@@ -1,7 +1,6 @@
 package shared.message.communication;
 
-import java.io.Serializable;
-import java.util.*;
+import java.util.HashSet;
 
 /**
  * The <code>ClientMessage</code> class represents a message sent from a client.
@@ -70,7 +69,7 @@ public class ClientMessage extends Message {
         {
             if (!e.startsWith(USER_DECORATOR)) {
                 message.append(e)
-                       .append(e.equals(splitMessage[splitMessage.length - 1]) ? "" : WORD_DELIMITER);
+                        .append(e.equals(splitMessage[splitMessage.length - 1]) ? "" : WORD_DELIMITER);
             }
         }
 

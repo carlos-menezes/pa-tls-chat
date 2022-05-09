@@ -2,19 +2,25 @@ package shared.message.communication;
 
 import java.io.Serializable;
 
-public class SignedMessage implements Serializable {
-    private final byte[] sealedMessageBytes;
-    private final byte[] signingHash;
+/**
+ * A {@link SignedMessage} encapsulates an encrypted message with its calculated hash
+ */
+public record SignedMessage(byte[] encryptedMessageBytes, byte[] signingHash) implements Serializable {
 
-    public SignedMessage(byte[] sealedMessageBytes, byte[] signingHash) {
-        this.sealedMessageBytes = sealedMessageBytes;
-        this.signingHash = signingHash;
+    /**
+     * Method that returns the encrypted message bytes
+     *
+     * @return The encrypted message bytes
+     */
+    public byte[] getEncryptedMessageBytes() {
+        return encryptedMessageBytes;
     }
 
-    public byte[] getSealedMessageBytes() {
-        return sealedMessageBytes;
-    }
-
+    /**
+     * Method that returns the signing hash of the encrypted message.
+     *
+     * @return The hash of the message
+     */
     public byte[] getSigningHash() {
         return signingHash;
     }

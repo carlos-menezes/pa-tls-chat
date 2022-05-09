@@ -7,10 +7,15 @@ import java.security.PublicKey;
 public class ServerHello implements Serializable {
 
     private BigInteger publicDHKey;
+    private PublicKey publicSigningKey;
     private PublicKey publicRSAKey;
 
     public BigInteger getPublicDHKey() {
         return publicDHKey;
+    }
+
+    public PublicKey getPublicSigningKey() {
+        return publicSigningKey;
     }
 
     public PublicKey getPublicRSAKey() {
@@ -27,15 +32,23 @@ public class ServerHello implements Serializable {
 
     public static final class Builder {
         private BigInteger publicDHKey;
+        private PublicKey publicSigningKey;
         private PublicKey publicRSAKey;
 
         public Builder() {
         }
 
+
         public Builder withPublicDHKey(BigInteger publicDHKey) {
             this.publicDHKey = publicDHKey;
             return this;
         }
+
+        public Builder withPublicSigningKey(PublicKey publicSigningKey) {
+            this.publicSigningKey = publicSigningKey;
+            return this;
+        }
+
 
         public Builder withPublicRSAKey(PublicKey publicRSAKey) {
             this.publicRSAKey = publicRSAKey;
@@ -45,6 +58,7 @@ public class ServerHello implements Serializable {
         public ServerHello build() {
             ServerHello serverHello = new ServerHello();
             serverHello.publicRSAKey = this.publicRSAKey;
+            serverHello.publicSigningKey = this.publicSigningKey;
             serverHello.publicDHKey = this.publicDHKey;
             return serverHello;
         }

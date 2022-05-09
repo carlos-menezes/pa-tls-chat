@@ -19,6 +19,8 @@ import shared.message.communication.ClientMessage;
 import shared.message.communication.ServerMessage;
 import shared.message.communication.ServerUserStatusMessage;
 import shared.message.communication.SignedMessage;
+import shared.signing.MessageSigner;
+import shared.signing.MessageValidator;
 
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
@@ -41,7 +43,7 @@ public class Client implements Callable<Integer> {
      * Commands line options
      */
     @CommandLine.Option(names = {"-e",
-                                 "--encryption-algorithms"}, description = "Encryption algorithm", required = true)
+            "--encryption-algorithms"}, description = "Encryption algorithm", required = true)
     @SuppressWarnings("FieldMayBeFinal")
     private String encryptionAlgorithm = "";
     @CommandLine.Option(names = {"-k", "--key-size"}, description = "Key size", required = true)
@@ -66,6 +68,7 @@ public class Client implements Callable<Integer> {
 
     // Signing
     private KeyPair SigningKeys;
+    private PublicKey serverSigningKey;
 
     // RSA
     private KeyPair RSAKeys;
@@ -82,11 +85,11 @@ public class Client implements Callable<Integer> {
             EncryptionValidator encryptionValidator = new EncryptionValidator();
             encryptionValidator.validate(this.encryptionAlgorithm, this.keySize);
 
-            // Gera o par RSA para assinatura
+            // Generates Asymmetric KeyPair for signing purposes
             this.SigningKeys = AsymmetricEncryptionScheme.generateKeys(4096);
             this.encryptionAlgorithmType = encryptionValidator.getValidators()
-                                                              .get(this.encryptionAlgorithm)
-                                                              .getType();
+                    .get(this.encryptionAlgorithm)
+                    .getType();
             if (this.encryptionAlgorithmType == EncryptionAlgorithmType.ASYMMETRIC) {
                 this.RSAKeys = AsymmetricEncryptionScheme.generateKeys(this.keySize);
             }
@@ -130,8 +133,6 @@ public class Client implements Callable<Integer> {
             return CommandLine.ExitCode.SOFTWARE;
         }
 
-        System.out.println(this.getEncryptionKey());
-
         Logger.info("Welcome to #pa-tls-chat.");
         this.readMessages();
         this.writeMessages();
@@ -146,22 +147,28 @@ public class Client implements Callable<Integer> {
             while (this.socket.isConnected()) {
                 try {
                     Object message = this.objectInputStream.readObject();
-                    if (message instanceof SealedObject sealedObject) {
+                    if (message instanceof SignedMessage signedMessage) {
+                        boolean validSignature = MessageValidator.validateMessage(this.getHashingAlgorithm(), this.serverSigningKey , signedMessage);
+                        if (!validSignature) {
+                            continue;
+                        }
+
                         ServerMessage serverMessage = null;
-                        switch (this.getEncryptionAlgorithmType()) {
+                        switch (this.encryptionAlgorithmType) {
                             case SYMMETRIC -> {
-                                SecretKeySpec secretKeySpec = SymmetricEncryptionScheme.getSecretKeyFromBytes(
-                                        this.getKeySize(),
-                                        this.encryptionKey.toByteArray(),
-                                        this.getEncryptionAlgorithm());
+                                SealedObject sealedObject = SerializationUtils.deserialize(signedMessage.getEncryptedMessageBytes());
+                                SecretKeySpec secretKeySpec = SymmetricEncryptionScheme.getSecretKeyFromBytes(this.getKeySize(),  this.getEncryptionKey().toByteArray(), this.getEncryptionAlgorithm());
                                 serverMessage = (ServerMessage) sealedObject.getObject(secretKeySpec);
+                                System.out.println("simetrico");
                             }
                             case ASYMMETRIC -> {
-                                SecretKeySpec secretKeySpec = SymmetricEncryptionScheme.getSecretKeyFromBytes(
-                                        256,
-                                        this.encryptionKey.toByteArray(),
-                                        "AES");
-                                serverMessage = (ServerMessage) sealedObject.getObject(secretKeySpec);
+                                serverMessage = SerializationUtils.deserialize(signedMessage.getEncryptedMessageBytes());
+                                byte[] encryptedMessageBytes = Base64.getDecoder().decode(serverMessage.getMessage());
+                                Cipher decryptCipher = Cipher.getInstance("RSA");
+                                decryptCipher.init(Cipher.DECRYPT_MODE, this.serverRSAKey);
+                                byte[] decryptedMessageBytes = decryptCipher.doFinal(encryptedMessageBytes);
+                                serverMessage.setMessage(new String(decryptedMessageBytes));
+                                System.out.println("assimetrico");
                             }
                         }
                         Logger.message(serverMessage);
@@ -170,13 +177,25 @@ public class Client implements Callable<Integer> {
                             Logger.info(serverUserStatusMessage.getMessage());
                         }
                     }
-                } catch (IOException | ClassNotFoundException | NoSuchAlgorithmException | InvalidKeyException e) {
+                } catch (IOException | ClassNotFoundException e) {
                     try {
                         closeConnection();
                     } catch (IOException ex) {
                         Logger.error(ex.getMessage());
                     }
                     return;
+                } catch (NoSuchAlgorithmException e) {
+                    e.printStackTrace();
+                } catch (SignatureException e) {
+                    e.printStackTrace();
+                } catch (InvalidKeyException e) {
+                    e.printStackTrace();
+                } catch (NoSuchPaddingException e) {
+                    e.printStackTrace();
+                } catch (IllegalBlockSizeException e) {
+                    e.printStackTrace();
+                } catch (BadPaddingException e) {
+                    e.printStackTrace();
                 }
             }
         }).start();
@@ -197,43 +216,29 @@ public class Client implements Callable<Integer> {
             }
 
             // Encrypt message
-            SealedObject sealedObject;
             SignedMessage signedMessage = null;
             switch (this.encryptionAlgorithmType) {
+                // Encrypts the entire ClientMessage object
                 case SYMMETRIC -> {
-                    // Encripta com o algoritmo escolhido (ex: DES)
                     byte[] sharedKeyBytes = this.getEncryptionKey().toByteArray();
-                    byte[] bytes = ByteBuffer.allocate(  this.getKeySize() / 8 ).put( sharedKeyBytes ).array( );
-                    SecretKeySpec secretKey = new SecretKeySpec( bytes , this.encryptionAlgorithm.equals("3DES") ? "TripleDES" : this.encryptionAlgorithm);
-                    Cipher cipher = Cipher.getInstance(this.encryptionAlgorithm.equals("3DES") ? "TripleDES" : this.encryptionAlgorithm);
-                    cipher.init( Cipher.ENCRYPT_MODE , secretKey );
-                    sealedObject = new SealedObject(clientMessage, cipher);
+                    byte[] bytes = ByteBuffer.allocate(this.getKeySize() / 8).put(sharedKeyBytes).array();
+                    SecretKeySpec secretKey = new SecretKeySpec(bytes, this.encryptionAlgorithm);
+                    Cipher cipher = Cipher.getInstance(this.encryptionAlgorithm);
+                    cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+                    SealedObject sealedObject = new SealedObject(clientMessage, cipher);
 
                     byte[] sealedObjectBytes = SerializationUtils.serialize(sealedObject);
-
-                    // Assina o objeto encriptado com o algoritmo de hash preferido, usa o SHA256 como fallback
-                    Signature signature = Signature.getInstance(this.hashingAlgorithm.isEmpty() ? "SHA256withRSA": this.hashingAlgorithm);
-                    signature.initSign(this.getSigningKeys().getPrivate());
-                    signature.update(sealedObjectBytes);
-                    byte[] digitalSignature = signature.sign();
-                    signedMessage = new SignedMessage(sealedObjectBytes,digitalSignature);
+                    signedMessage = MessageSigner.signMessage(this.hashingAlgorithm, this.getSigningKeys().getPrivate(), sealedObjectBytes);
                 }
+                // Encrypts only the message property of ClientMessage (due to RSA constraints)
                 case ASYMMETRIC -> {
-                    // Encripta com o RSA (apenas a mensagem)
                     Cipher cipher = Cipher.getInstance(this.encryptionAlgorithm);
-                    cipher.init( Cipher.ENCRYPT_MODE , this.serverRSAKey );
-                    byte[] clientMessageBytes = clientMessage.getMessage().getBytes();
-                    byte[] encryptedClientMessageBytes = cipher.doFinal(clientMessageBytes);
+                    cipher.init(Cipher.ENCRYPT_MODE, this.serverRSAKey);
+                    byte[] encryptedClientMessageBytes = cipher.doFinal(clientMessage.getMessage().getBytes());
                     clientMessage.setMessage(Base64.getEncoder().encodeToString(encryptedClientMessageBytes));
 
-                    byte[] sealedObjectBytes = SerializationUtils.serialize(clientMessage);
-
-                    // Assina o objeto encriptado com o algoritmo de hash preferido, usa o SHA256 como fallback
-                    Signature signature = Signature.getInstance(this.hashingAlgorithm.isEmpty() ? "SHA256withRSA": this.hashingAlgorithm);
-                    signature.initSign(this.getSigningKeys().getPrivate());
-                    signature.update(sealedObjectBytes);
-                    byte[] digitalSignature = signature.sign();
-                    signedMessage = new SignedMessage(sealedObjectBytes,digitalSignature);
+                    byte[] clientMessageBytes = SerializationUtils.serialize(clientMessage);
+                    signedMessage = MessageSigner.signMessage(this.hashingAlgorithm, this.getSigningKeys().getPrivate(), clientMessageBytes);
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + this.encryptionAlgorithmType);
             }
@@ -243,7 +248,6 @@ public class Client implements Callable<Integer> {
                 this.objectOutputStream.flush();
             } catch (IOException e) {
                 try {
-                    System.out.println(e);
                     closeConnection();
                     return;
                 } catch (IOException ex) {
@@ -310,6 +314,14 @@ public class Client implements Callable<Integer> {
 
     public void setServerRSAKey(PublicKey serverRSAKey) {
         this.serverRSAKey = serverRSAKey;
+    }
+
+    public PublicKey getServerSigningKey() {
+        return serverRSAKey;
+    }
+
+    public void setServerSigningKey(PublicKey serverSigningKey) {
+        this.serverSigningKey = serverSigningKey;
     }
 
     public ObjectOutputStream getObjectOutputStream() {

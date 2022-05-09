@@ -11,12 +11,12 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class ThreeDESValidatorTest {
-    private ThreeDESValidator validator;
+class TripleDESValidatorTest {
+    private TripleDESValidator validator;
 
     @BeforeEach
     void setUp() {
-        this.validator = new ThreeDESValidator();
+        this.validator = new TripleDESValidator();
     }
 
     @Test

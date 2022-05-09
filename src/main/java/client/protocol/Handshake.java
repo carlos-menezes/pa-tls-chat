@@ -15,6 +15,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.math.BigInteger;
+import java.security.PublicKey;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 
@@ -69,6 +70,9 @@ public class Handshake implements Callable<Integer> {
         BigInteger privateSharedDHKey;
         ServerHello serverHello = (ServerHello) serverReply;
         BigInteger serverPublicDHKey = serverHello.getPublicDHKey();
+        PublicKey serverSigningKey = serverHello.getPublicSigningKey();
+
+        this.client.setServerSigningKey(serverSigningKey);
 
         if (this.client.getEncryptionAlgorithmType() == EncryptionAlgorithmType.ASYMMETRIC) {
             this.client.setServerRSAKey(serverHello.getPublicRSAKey());
