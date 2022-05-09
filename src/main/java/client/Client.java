@@ -9,7 +9,6 @@ import shared.encryption.validator.EncryptionAlgorithmType;
 import shared.encryption.validator.EncryptionValidator;
 import shared.encryption.validator.exceptions.InvalidEncryptionAlgorithmException;
 import shared.encryption.validator.exceptions.InvalidKeySizeException;
-import shared.hashing.encoder.HashingEncoder;
 import shared.hashing.validator.HashingValidator;
 import shared.hashing.validator.exceptions.InvalidHashingAlgorithmException;
 import shared.hashing.validator.exceptions.UnsupportedHashingAlgorithmException;
@@ -19,7 +18,7 @@ import shared.logging.Logger;
 import shared.message.communication.ClientMessage;
 import shared.message.communication.ServerMessage;
 import shared.message.communication.ServerUserStatusMessage;
-import shared.message.communication.SignedClientMessage;
+import shared.message.communication.SignedMessage;
 
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
@@ -199,7 +198,7 @@ public class Client implements Callable<Integer> {
 
             // Encrypt message
             SealedObject sealedObject;
-            SignedClientMessage signedClientMessage = null;
+            SignedMessage signedMessage = null;
             switch (this.encryptionAlgorithmType) {
                 case SYMMETRIC -> {
                     // Encripta com o algoritmo escolhido (ex: DES)
@@ -217,28 +216,30 @@ public class Client implements Callable<Integer> {
                     signature.initSign(this.getSigningKeys().getPrivate());
                     signature.update(sealedObjectBytes);
                     byte[] digitalSignature = signature.sign();
-                    signedClientMessage = new SignedClientMessage(sealedObjectBytes,digitalSignature);
+                    signedMessage = new SignedMessage(sealedObjectBytes,digitalSignature);
                 }
                 case ASYMMETRIC -> {
-                    // Encripta com o RSA
+                    // Encripta com o RSA (apenas a mensagem)
                     Cipher cipher = Cipher.getInstance(this.encryptionAlgorithm);
                     cipher.init( Cipher.ENCRYPT_MODE , this.serverRSAKey );
-                    sealedObject = new SealedObject(clientMessage, cipher);
+                    byte[] clientMessageBytes = clientMessage.getMessage().getBytes();
+                    byte[] encryptedClientMessageBytes = cipher.doFinal(clientMessageBytes);
+                    clientMessage.setMessage(Base64.getEncoder().encodeToString(encryptedClientMessageBytes));
 
-                    byte[] sealedObjectBytes = SerializationUtils.serialize(sealedObject);
+                    byte[] sealedObjectBytes = SerializationUtils.serialize(clientMessage);
 
                     // Assina o objeto encriptado com o algoritmo de hash preferido, usa o SHA256 como fallback
                     Signature signature = Signature.getInstance(this.hashingAlgorithm.isEmpty() ? "SHA256withRSA": this.hashingAlgorithm);
                     signature.initSign(this.getSigningKeys().getPrivate());
                     signature.update(sealedObjectBytes);
                     byte[] digitalSignature = signature.sign();
-                    signedClientMessage = new SignedClientMessage(sealedObjectBytes,digitalSignature);
+                    signedMessage = new SignedMessage(sealedObjectBytes,digitalSignature);
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + this.encryptionAlgorithmType);
             }
 
             try {
-                this.objectOutputStream.writeObject(signedClientMessage);
+                this.objectOutputStream.writeObject(signedMessage);
                 this.objectOutputStream.flush();
             } catch (IOException e) {
                 try {

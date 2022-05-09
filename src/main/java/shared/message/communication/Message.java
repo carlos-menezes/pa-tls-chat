@@ -8,7 +8,7 @@ import java.io.Serializable;
  */
 public abstract class Message implements Serializable {
 
-    private final String message;
+    private String message;
     private String hash;
 
     /**
@@ -27,6 +27,11 @@ public abstract class Message implements Serializable {
      */
     public String getMessage() {
         return message;
+    }
+
+    //
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     /**

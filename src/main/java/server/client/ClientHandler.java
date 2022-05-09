@@ -1,6 +1,5 @@
 package server.client;
 
-import client.Client;
 import org.apache.commons.lang3.SerializationUtils;
 import server.Server;
 import shared.encryption.validator.EncryptionAlgorithmType;
@@ -13,7 +12,7 @@ import shared.logging.Messages;
 import shared.message.communication.ClientMessage;
 import shared.message.communication.ServerMessage;
 import shared.message.communication.ServerUserStatusMessage;
-import shared.message.communication.SignedClientMessage;
+import shared.message.communication.SignedMessage;
 import shared.message.handshake.ClientHello;
 import shared.message.handshake.ServerError;
 import shared.message.handshake.ServerHello;
@@ -28,6 +27,7 @@ import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.security.*;
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.Objects;
 
@@ -62,21 +62,21 @@ public class ClientHandler implements Runnable {
                 if (message instanceof ClientHello clientHello) {
                     this.handleClientHello(clientHello);
                 } else {
-                    if (message instanceof SignedClientMessage signedClientMessage) {
+                    if (message instanceof SignedMessage signedMessage) {
                         ClientSpec clientSpec = Server.clients.get(this.name);
                         // Verifica a autenticidade
                         Signature signature = Signature.getInstance(clientSpec.getHashingAlgorithm().isEmpty() ? "SHA256withRSA": clientSpec.getHashingAlgorithm());
                         signature.initVerify(clientSpec.getPublicSigningKey());
-                        signature.update(signedClientMessage.getSealedClientMessageBytes());
-                        boolean validSignature = signature.verify(signedClientMessage.getSigningHash());
+                        signature.update(signedMessage.getSealedMessageBytes());
+                        boolean validSignature = signature.verify(signedMessage.getSigningHash());
                         if(!validSignature) {
                             continue;
                         }
 
-                        SealedObject sealedObject = SerializationUtils.deserialize(signedClientMessage.getSealedClientMessageBytes());
                         ClientMessage clientMessage = null;
                         switch (clientSpec.getEncryptionAlgorithmType()) {
                             case SYMMETRIC -> {
+                                SealedObject sealedObject = SerializationUtils.deserialize(signedMessage.getSealedMessageBytes());
                                 SecretKeySpec secretKeySpec = SymmetricEncryptionScheme.getSecretKeyFromBytes(
                                         clientSpec.getKeySize(),
                                         clientSpec.getPrivateSharedDHKey()
@@ -86,8 +86,17 @@ public class ClientHandler implements Runnable {
                                 System.out.println(clientMessage.getMessage());
                             }
                             case ASYMMETRIC -> {
-                                clientMessage = (ClientMessage) sealedObject.getObject(this.RSAPrivateKey);
-                                System.out.println(clientMessage.getMessage());
+                                // Este encryptedMessage contém a mensagem encriptada (ao contrário dos algoritmos simétricos que tem todo o objeto encriptado)
+                                ClientMessage encryptedMessage = SerializationUtils.deserialize(signedMessage.getSealedMessageBytes());
+                                byte[] encryptedMessageBytes = Base64.getDecoder().decode(encryptedMessage.getMessage());
+                                Cipher decryptCipher = Cipher.getInstance("RSA");
+                                decryptCipher.init(Cipher.DECRYPT_MODE, this.RSAPrivateKey);
+                                byte[] decryptedMessageBytes = decryptCipher.doFinal(encryptedMessageBytes);
+                                System.out.println(encryptedMessage.getUsers());
+                                System.out.println(new String(decryptedMessageBytes));
+
+                                /*clientMessage = (ClientMessage) sealedObject.getObject(this.RSAPrivateKey);
+                                System.out.println(clientMessage.getMessage());*/
                             }
                         }
 
@@ -97,6 +106,12 @@ public class ClientHandler implements Runnable {
             } catch (IOException | ClassNotFoundException | NoSuchAlgorithmException | InvalidKeyException e) {
                 break;
             } catch (SignatureException e) {
+                e.printStackTrace();
+            } catch (NoSuchPaddingException e) {
+                e.printStackTrace();
+            } catch (IllegalBlockSizeException e) {
+                e.printStackTrace();
+            } catch (BadPaddingException e) {
                 e.printStackTrace();
             }
         }
@@ -136,13 +151,26 @@ public class ClientHandler implements Runnable {
      */
     private void handleClientMessage(ClientMessage clientMessage) throws IOException {
         ServerMessage serverMessage = new ServerMessage(this.name, clientMessage.getMessage());
+
         HashSet<String> users = new HashSet<>(clientMessage.getUsers());
         if (users.isEmpty()) {
             this.broadcast(serverMessage);
         } else {
             for (String user : users) {
                 try {
+                    SignedMessage signedMessage;
                     ClientSpec clientSpec = Server.clients.get(user);
+
+                    byte[] serverMessageBytes = SerializationUtils.serialize(serverMessage);
+                    // Assina o objeto encriptado com o algoritmo de hash preferido, usa o SHA256 como fallback
+                    Signature signature = Signature.getInstance(clientSpec.getHashingAlgorithm().isEmpty() ? "SHA256withRSA" : clientSpec.getHashingAlgorithm());
+                    // Falta criar um par para assinatura
+                    /*signature.initSign(Server);
+                    signature.update(sealedObjectBytes);
+                    byte[] digitalSignature = signature.sign();
+                    signedMessage = new SignedMessage(sealedObjectBytes,digitalSignature);*/
+
+
                     String messageContent = clientMessage.getMessage();
                     SealedObject sealedObject = this.createEncryptedServerMessage(clientSpec, messageContent);
                     this.sendMessage(clientSpec.getObjectOutputStream(), sealedObject);
