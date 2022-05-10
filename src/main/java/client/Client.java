@@ -3,8 +3,9 @@ package client;
 import client.protocol.Handshake;
 import client.util.Generator;
 import client.util.Validator;
-import org.apache.commons.lang3.SerializationUtils;
 import picocli.CommandLine;
+import shared.encryption.decoder.MessageDecoder;
+import shared.encryption.encoder.MessageEncoder;
 import shared.encryption.validator.EncryptionAlgorithmType;
 import shared.encryption.validator.EncryptionValidator;
 import shared.encryption.validator.exceptions.InvalidEncryptionAlgorithmException;
@@ -13,25 +14,22 @@ import shared.hashing.validator.HashingValidator;
 import shared.hashing.validator.exceptions.InvalidHashingAlgorithmException;
 import shared.hashing.validator.exceptions.UnsupportedHashingAlgorithmException;
 import shared.keys.schemes.AsymmetricEncryptionScheme;
-import shared.keys.schemes.SymmetricEncryptionScheme;
 import shared.logging.Logger;
 import shared.message.communication.ClientMessage;
 import shared.message.communication.ServerMessage;
 import shared.message.communication.ServerUserStatusMessage;
 import shared.message.communication.SignedMessage;
-import shared.signing.MessageSigner;
 import shared.signing.MessageValidator;
 
-import javax.crypto.*;
-import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.security.*;
-import java.util.Base64;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
@@ -67,7 +65,7 @@ public class Client implements Callable<Integer> {
     private BigInteger encryptionKey;
 
     // Signing
-    private KeyPair SigningKeys;
+    private KeyPair signingKeys;
     private PublicKey serverSigningKey;
 
     // RSA
@@ -86,7 +84,7 @@ public class Client implements Callable<Integer> {
             encryptionValidator.validate(this.encryptionAlgorithm, this.keySize);
 
             // Generates Asymmetric KeyPair for signing purposes
-            this.SigningKeys = AsymmetricEncryptionScheme.generateKeys(4096);
+            this.signingKeys = AsymmetricEncryptionScheme.generateKeys(4096);
             this.encryptionAlgorithmType = encryptionValidator.getValidators()
                     .get(this.encryptionAlgorithm)
                     .getType();
@@ -155,28 +153,9 @@ public class Client implements Callable<Integer> {
 
                         ServerMessage serverMessage = null;
                         switch (this.encryptionAlgorithmType) {
-                            case SYMMETRIC -> {
-                                byte[] sharedKeyBytes = this.getEncryptionKey().toByteArray();
-                                byte[] bytes = ByteBuffer.allocate(this.getKeySize() / 8).put(sharedKeyBytes).array();
-                                SecretKeySpec secretKey = new SecretKeySpec(bytes, this.getEncryptionAlgorithm());
-                                serverMessage = SerializationUtils.deserialize(signedMessage.getEncryptedMessageBytes());
-                                byte[] encryptedMessageBytes = Base64.getDecoder().decode(serverMessage.getMessage());
-                                Cipher decryptCipher = Cipher.getInstance(this.getEncryptionAlgorithm());
-                                decryptCipher.init(Cipher.DECRYPT_MODE, secretKey);
-                                byte[] decryptedMessageBytes = decryptCipher.doFinal(encryptedMessageBytes);
-                                serverMessage.setMessage(new String(decryptedMessageBytes));
-
-
-                            }
-                            case ASYMMETRIC -> {
-                                serverMessage = SerializationUtils.deserialize(signedMessage.getEncryptedMessageBytes());
-                                byte[] encryptedMessageBytes = Base64.getDecoder().decode(serverMessage.getMessage());
-                                Cipher decryptCipher = Cipher.getInstance("RSA");
-                                decryptCipher.init(Cipher.DECRYPT_MODE, this.serverRSAKey);
-                                byte[] decryptedMessageBytes = decryptCipher.doFinal(encryptedMessageBytes);
-                                serverMessage.setMessage(new String(decryptedMessageBytes));
-                                System.out.println("assimetrico");
-                            }
+                            case SYMMETRIC -> serverMessage = (ServerMessage) MessageDecoder.decodeMessage(signedMessage, this.getEncryptionKey(), this.getKeySize(), this.getEncryptionAlgorithm());
+                            case ASYMMETRIC -> serverMessage = (ServerMessage) MessageDecoder.decodeMessage(signedMessage, this.serverRSAKey, this.getEncryptionAlgorithm());
+                            default -> throw new IllegalStateException("Unexpected value: " + this.encryptionAlgorithmType);
                         }
                         Logger.message(serverMessage);
                     } else {
@@ -191,17 +170,7 @@ public class Client implements Callable<Integer> {
                         Logger.error(ex.getMessage());
                     }
                     return;
-                } catch (NoSuchAlgorithmException e) {
-                    e.printStackTrace();
-                } catch (SignatureException e) {
-                    e.printStackTrace();
-                } catch (InvalidKeyException e) {
-                    e.printStackTrace();
-                } catch (NoSuchPaddingException e) {
-                    e.printStackTrace();
-                } catch (IllegalBlockSizeException e) {
-                    e.printStackTrace();
-                } catch (BadPaddingException e) {
+                } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException e) {
                     e.printStackTrace();
                 }
             }
@@ -209,7 +178,7 @@ public class Client implements Callable<Integer> {
     }
 
     private void writeMessages() throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException,
-            IllegalBlockSizeException, IOException, BadPaddingException, SignatureException {
+            IllegalBlockSizeException, BadPaddingException, SignatureException {
         while (this.socket.isConnected()) {
             this.displayInputPrompt();
             Scanner input = new Scanner(System.in);
@@ -222,33 +191,11 @@ public class Client implements Callable<Integer> {
                 continue;
             }
 
-            // Encrypt message
             SignedMessage signedMessage = null;
+            // Encrypt message
             switch (this.encryptionAlgorithmType) {
-                // Encrypts the entire ClientMessage object
-                case SYMMETRIC -> {
-                    byte[] sharedKeyBytes = this.getEncryptionKey().toByteArray();
-                    byte[] bytes = ByteBuffer.allocate(this.getKeySize() / 8).put(sharedKeyBytes).array();
-                    SecretKeySpec secretKey = new SecretKeySpec(bytes, this.encryptionAlgorithm);
-                    Cipher cipher = Cipher.getInstance(this.encryptionAlgorithm);
-                    cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-
-                    byte[] encryptedClientMessageBytes = cipher.doFinal(clientMessage.getMessage().getBytes());
-                    clientMessage.setMessage(Base64.getEncoder().encodeToString(encryptedClientMessageBytes));
-
-                    byte[] clientMessageBytes = SerializationUtils.serialize(clientMessage);
-                    signedMessage = MessageSigner.signMessage(this.hashingAlgorithm, this.getSigningKeys().getPrivate(), clientMessageBytes);
-                }
-                // Encrypts only the message property of ClientMessage (due to RSA constraints)
-                case ASYMMETRIC -> {
-                    Cipher cipher = Cipher.getInstance(this.encryptionAlgorithm);
-                    cipher.init(Cipher.ENCRYPT_MODE, this.serverRSAKey);
-                    byte[] encryptedClientMessageBytes = cipher.doFinal(clientMessage.getMessage().getBytes());
-                    clientMessage.setMessage(Base64.getEncoder().encodeToString(encryptedClientMessageBytes));
-
-                    byte[] clientMessageBytes = SerializationUtils.serialize(clientMessage);
-                    signedMessage = MessageSigner.signMessage(this.hashingAlgorithm, this.getSigningKeys().getPrivate(), clientMessageBytes);
-                }
+                case SYMMETRIC -> signedMessage = MessageEncoder.encodeMessage(clientMessage, this.encryptionAlgorithm, this.getEncryptionKey(), this.getKeySize(), this.hashingAlgorithm, this.getSigningKeys().getPrivate());
+                case ASYMMETRIC -> signedMessage = MessageEncoder.encodeMessage(clientMessage, this.encryptionAlgorithm, this.serverRSAKey, this.hashingAlgorithm, this.signingKeys.getPrivate());
                 default -> throw new IllegalStateException("Unexpected value: " + this.encryptionAlgorithmType);
             }
 
@@ -310,7 +257,7 @@ public class Client implements Callable<Integer> {
     }
 
     public KeyPair getSigningKeys() {
-        return SigningKeys;
+        return signingKeys;
     }
 
     public KeyPair getRSAKeys() {

@@ -1,13 +1,12 @@
 package server.client;
 
-import org.apache.commons.lang3.SerializationUtils;
 import server.Server;
+import shared.encryption.decoder.MessageDecoder;
+import shared.encryption.encoder.MessageEncoder;
 import shared.encryption.validator.EncryptionAlgorithmType;
 import shared.encryption.validator.EncryptionValidator;
-import shared.hashing.encoder.HashingEncoder;
 import shared.keys.schemes.AsymmetricEncryptionScheme;
 import shared.keys.schemes.DiffieHellman;
-import shared.keys.schemes.SymmetricEncryptionScheme;
 import shared.logging.Logger;
 import shared.logging.Messages;
 import shared.message.communication.ClientMessage;
@@ -17,20 +16,18 @@ import shared.message.communication.SignedMessage;
 import shared.message.handshake.ClientHello;
 import shared.message.handshake.ServerError;
 import shared.message.handshake.ServerHello;
-import shared.signing.MessageSigner;
 import shared.signing.MessageValidator;
 
-import javax.crypto.*;
-import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.security.*;
-import java.util.Base64;
 import java.util.HashSet;
 import java.util.Objects;
 
@@ -74,27 +71,9 @@ public class ClientHandler implements Runnable {
 
                         ClientMessage clientMessage = null;
                         switch (clientSpec.getEncryptionAlgorithmType()) {
-                            case SYMMETRIC -> {
-                                byte[] sharedKeyBytes = clientSpec.getPrivateSharedDHKey().toByteArray();
-                                byte[] bytes = ByteBuffer.allocate(clientSpec.getKeySize() / 8).put(sharedKeyBytes).array();
-                                SecretKeySpec secretKey = new SecretKeySpec(bytes, clientSpec.getEncryptionAlgorithm());
-
-
-                                clientMessage = SerializationUtils.deserialize(signedMessage.getEncryptedMessageBytes());
-                                byte[] encryptedMessageBytes = Base64.getDecoder().decode(clientMessage.getMessage());
-                                Cipher decryptCipher = Cipher.getInstance(clientSpec.getEncryptionAlgorithm());
-                                decryptCipher.init(Cipher.DECRYPT_MODE, secretKey);
-                                byte[] decryptedMessageBytes = decryptCipher.doFinal(encryptedMessageBytes);
-                                clientMessage.setMessage(new String(decryptedMessageBytes));
-                            }
-                            case ASYMMETRIC -> {
-                                clientMessage = SerializationUtils.deserialize(signedMessage.getEncryptedMessageBytes());
-                                byte[] encryptedMessageBytes = Base64.getDecoder().decode(clientMessage.getMessage());
-                                Cipher decryptCipher = Cipher.getInstance(clientSpec.getEncryptionAlgorithm());
-                                decryptCipher.init(Cipher.DECRYPT_MODE, this.RSAPrivateKey);
-                                byte[] decryptedMessageBytes = decryptCipher.doFinal(encryptedMessageBytes);
-                                clientMessage.setMessage(new String(decryptedMessageBytes));
-                            }
+                            case SYMMETRIC -> clientMessage = (ClientMessage) MessageDecoder.decodeMessage(signedMessage, clientSpec.getPrivateSharedDHKey(), clientSpec.getKeySize(), clientSpec.getEncryptionAlgorithm());
+                            case ASYMMETRIC -> clientMessage = (ClientMessage) MessageDecoder.decodeMessage(signedMessage, this.RSAPrivateKey, clientSpec.getEncryptionAlgorithm());
+                            default -> throw new IllegalStateException("Unexpected value: " + clientSpec.getEncryptionAlgorithmType());
                         }
                         Logger.info(this.name + " sent: \"" + clientMessage.getMessage() + "\" to " + (clientMessage.getUsers().isEmpty() ? "everyone" : "the following users: " + clientMessage.getUsers()));
                         this.handleClientMessage(clientMessage);
@@ -102,13 +81,7 @@ public class ClientHandler implements Runnable {
                 }
             } catch (IOException | ClassNotFoundException | NoSuchAlgorithmException | InvalidKeyException e) {
                 break;
-            } catch (SignatureException e) {
-                e.printStackTrace();
-            } catch (NoSuchPaddingException e) {
-                e.printStackTrace();
-            } catch (IllegalBlockSizeException e) {
-                e.printStackTrace();
-            } catch (BadPaddingException e) {
+            } catch (SignatureException | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException e) {
                 e.printStackTrace();
             }
         }
@@ -155,7 +128,6 @@ public class ClientHandler implements Runnable {
             // Outra opção seria filtrar o HashSet da condição de cima
             if (!Objects.equals(user, this.name)) {
                 try {
-                    SignedMessage signedMessage = null;
                     ClientSpec clientSpec = Server.clients.get(user);
 
                     EncryptionValidator encryptionValidator = new EncryptionValidator();
@@ -163,30 +135,11 @@ public class ClientHandler implements Runnable {
                             .get(clientSpec.getEncryptionAlgorithm())
                             .getType();
 
+                    SignedMessage signedMessage = null;
+                    // Encrypt message
                     switch (algorithmType) {
-                        case SYMMETRIC -> {
-                            byte[] sharedKeyBytes = clientSpec.getPrivateSharedDHKey().toByteArray();
-                            byte[] bytes = ByteBuffer.allocate(clientSpec.getKeySize() / 8).put(sharedKeyBytes).array();
-                            SecretKeySpec secretKey = new SecretKeySpec(bytes, clientSpec.getEncryptionAlgorithm());
-                            Cipher cipher = Cipher.getInstance(clientSpec.getEncryptionAlgorithm());
-                            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-
-
-                            byte[] encryptedServerMessageBytes = cipher.doFinal(clientMessage.getMessage().getBytes());
-                            serverMessage.setMessage(Base64.getEncoder().encodeToString(encryptedServerMessageBytes));
-
-                            byte[] serverMessageBytes = SerializationUtils.serialize(serverMessage);
-                            signedMessage = MessageSigner.signMessage(clientSpec.getHashingAlgorithm(), Server.signingKeys.getPrivate(), serverMessageBytes);
-                        }
-                        case ASYMMETRIC -> {
-                            Cipher cipher = Cipher.getInstance(clientSpec.getEncryptionAlgorithm());
-                            cipher.init(Cipher.ENCRYPT_MODE, Server.RSAKeys.get(clientSpec.getKeySize()).getPrivate());
-                            byte[] encryptedServerMessageBytes = cipher.doFinal(serverMessage.getMessage().getBytes());
-                            serverMessage.setMessage(Base64.getEncoder().encodeToString(encryptedServerMessageBytes));
-
-                            byte[] serverMessageBytes = SerializationUtils.serialize(serverMessage);
-                            signedMessage = MessageSigner.signMessage(clientSpec.getHashingAlgorithm(), Server.signingKeys.getPrivate(), serverMessageBytes);
-                        }
+                        case SYMMETRIC -> signedMessage = MessageEncoder.encodeMessage(serverMessage, clientSpec.getEncryptionAlgorithm(), clientSpec.getPrivateSharedDHKey(), clientSpec.getKeySize(), clientSpec.getHashingAlgorithm(), Server.signingKeys.getPrivate());
+                        case ASYMMETRIC -> signedMessage = MessageEncoder.encodeMessage(serverMessage, clientSpec.getEncryptionAlgorithm(), Server.RSAKeys.get(clientSpec.getKeySize()).getPrivate(), clientSpec.getHashingAlgorithm(), Server.signingKeys.getPrivate());
                         default -> throw new IllegalStateException("Unexpected value: " + algorithmType);
                     }
                     this.sendMessage(clientSpec.getObjectOutputStream(), signedMessage);
@@ -199,50 +152,6 @@ public class ClientHandler implements Runnable {
                 }
             }
         }
-    }
-
-    /**
-     * Creates a new {@link SealedObject} with the content of a {@link ClientMessage}.
-     *
-     * @param clientSpec     {@link ClientSpec}
-     * @param messageContent content of the message
-     * @return an {@link SealedObject} encrypted with the receiver's supported encryption algorithm
-     * @throws NoSuchPaddingException
-     * @throws NoSuchAlgorithmException
-     * @throws IllegalBlockSizeException
-     * @throws IOException
-     * @throws InvalidKeyException
-     */
-    private SealedObject createEncryptedServerMessage(ClientSpec clientSpec, String messageContent) throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, IOException, InvalidKeyException {
-        ServerMessage serverMessage = new ServerMessage(this.name, messageContent);
-        String hashingAlgorithm = clientSpec.getHashingAlgorithm();
-
-        // If hashing is supported, create hash
-        if (!hashingAlgorithm.isEmpty()) {
-            String hash = HashingEncoder.createDigest(hashingAlgorithm, messageContent);
-            serverMessage.setHash(hash);
-        }
-
-        SealedObject sealedObject = null;
-        // Encrypt
-        switch (clientSpec.getEncryptionAlgorithmType()) {
-            case SYMMETRIC -> {
-                Cipher cipher = Cipher.getInstance(clientSpec.getEncryptionAlgorithm());
-                byte[] bytes = ByteBuffer.allocate(clientSpec.getKeySize() / 8).put(clientSpec.getPrivateSharedDHKey().toByteArray()).array();
-                SecretKeySpec secretKeySpec = new SecretKeySpec(bytes, clientSpec.getEncryptionAlgorithm());
-                cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
-                sealedObject = new SealedObject(serverMessage, cipher);
-            }
-            case ASYMMETRIC -> {
-                Cipher cipher = Cipher.getInstance("AES");
-                byte[] bytes = ByteBuffer.allocate(256 / 8).put(clientSpec.getPrivateSharedDHKey().toByteArray()).array();
-                SecretKeySpec secretKeySpec = new SecretKeySpec(bytes, "AES");
-                cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
-                sealedObject = new SealedObject(serverMessage, cipher);
-            }
-        }
-
-        return sealedObject;
     }
 
     /**
