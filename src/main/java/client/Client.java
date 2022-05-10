@@ -148,7 +148,7 @@ public class Client implements Callable<Integer> {
                 try {
                     Object message = this.objectInputStream.readObject();
                     if (message instanceof SignedMessage signedMessage) {
-                        boolean validSignature = MessageValidator.validateMessage(this.getHashingAlgorithm(), this.serverSigningKey , signedMessage);
+                        boolean validSignature = MessageValidator.validateMessage(this.getHashingAlgorithm(), this.serverSigningKey, signedMessage);
                         if (!validSignature) {
                             continue;
                         }
@@ -156,10 +156,17 @@ public class Client implements Callable<Integer> {
                         ServerMessage serverMessage = null;
                         switch (this.encryptionAlgorithmType) {
                             case SYMMETRIC -> {
-                                SealedObject sealedObject = SerializationUtils.deserialize(signedMessage.getEncryptedMessageBytes());
-                                SecretKeySpec secretKeySpec = SymmetricEncryptionScheme.getSecretKeyFromBytes(this.getKeySize(),  this.getEncryptionKey().toByteArray(), this.getEncryptionAlgorithm());
-                                serverMessage = (ServerMessage) sealedObject.getObject(secretKeySpec);
-                                System.out.println("simetrico");
+                                byte[] sharedKeyBytes = this.getEncryptionKey().toByteArray();
+                                byte[] bytes = ByteBuffer.allocate(this.getKeySize() / 8).put(sharedKeyBytes).array();
+                                SecretKeySpec secretKey = new SecretKeySpec(bytes, this.getEncryptionAlgorithm());
+                                serverMessage = SerializationUtils.deserialize(signedMessage.getEncryptedMessageBytes());
+                                byte[] encryptedMessageBytes = Base64.getDecoder().decode(serverMessage.getMessage());
+                                Cipher decryptCipher = Cipher.getInstance(this.getEncryptionAlgorithm());
+                                decryptCipher.init(Cipher.DECRYPT_MODE, secretKey);
+                                byte[] decryptedMessageBytes = decryptCipher.doFinal(encryptedMessageBytes);
+                                serverMessage.setMessage(new String(decryptedMessageBytes));
+
+
                             }
                             case ASYMMETRIC -> {
                                 serverMessage = SerializationUtils.deserialize(signedMessage.getEncryptedMessageBytes());
@@ -225,10 +232,12 @@ public class Client implements Callable<Integer> {
                     SecretKeySpec secretKey = new SecretKeySpec(bytes, this.encryptionAlgorithm);
                     Cipher cipher = Cipher.getInstance(this.encryptionAlgorithm);
                     cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-                    SealedObject sealedObject = new SealedObject(clientMessage, cipher);
 
-                    byte[] sealedObjectBytes = SerializationUtils.serialize(sealedObject);
-                    signedMessage = MessageSigner.signMessage(this.hashingAlgorithm, this.getSigningKeys().getPrivate(), sealedObjectBytes);
+                    byte[] encryptedClientMessageBytes = cipher.doFinal(clientMessage.getMessage().getBytes());
+                    clientMessage.setMessage(Base64.getEncoder().encodeToString(encryptedClientMessageBytes));
+
+                    byte[] clientMessageBytes = SerializationUtils.serialize(clientMessage);
+                    signedMessage = MessageSigner.signMessage(this.hashingAlgorithm, this.getSigningKeys().getPrivate(), clientMessageBytes);
                 }
                 // Encrypts only the message property of ClientMessage (due to RSA constraints)
                 case ASYMMETRIC -> {

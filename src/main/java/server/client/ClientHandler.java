@@ -75,14 +75,22 @@ public class ClientHandler implements Runnable {
                         ClientMessage clientMessage = null;
                         switch (clientSpec.getEncryptionAlgorithmType()) {
                             case SYMMETRIC -> {
-                                SealedObject sealedObject = SerializationUtils.deserialize(signedMessage.getEncryptedMessageBytes());
-                                SecretKeySpec secretKeySpec = SymmetricEncryptionScheme.getSecretKeyFromBytes(clientSpec.getKeySize(), clientSpec.getPrivateSharedDHKey().toByteArray(), clientSpec.getEncryptionAlgorithm());
-                                clientMessage = (ClientMessage) sealedObject.getObject(secretKeySpec);
+                                byte[] sharedKeyBytes = clientSpec.getPrivateSharedDHKey().toByteArray();
+                                byte[] bytes = ByteBuffer.allocate(clientSpec.getKeySize() / 8).put(sharedKeyBytes).array();
+                                SecretKeySpec secretKey = new SecretKeySpec(bytes, clientSpec.getEncryptionAlgorithm());
+
+
+                                clientMessage = SerializationUtils.deserialize(signedMessage.getEncryptedMessageBytes());
+                                byte[] encryptedMessageBytes = Base64.getDecoder().decode(clientMessage.getMessage());
+                                Cipher decryptCipher = Cipher.getInstance(clientSpec.getEncryptionAlgorithm());
+                                decryptCipher.init(Cipher.DECRYPT_MODE, secretKey);
+                                byte[] decryptedMessageBytes = decryptCipher.doFinal(encryptedMessageBytes);
+                                clientMessage.setMessage(new String(decryptedMessageBytes));
                             }
                             case ASYMMETRIC -> {
                                 clientMessage = SerializationUtils.deserialize(signedMessage.getEncryptedMessageBytes());
                                 byte[] encryptedMessageBytes = Base64.getDecoder().decode(clientMessage.getMessage());
-                                Cipher decryptCipher = Cipher.getInstance("RSA");
+                                Cipher decryptCipher = Cipher.getInstance(clientSpec.getEncryptionAlgorithm());
                                 decryptCipher.init(Cipher.DECRYPT_MODE, this.RSAPrivateKey);
                                 byte[] decryptedMessageBytes = decryptCipher.doFinal(encryptedMessageBytes);
                                 clientMessage.setMessage(new String(decryptedMessageBytes));
@@ -164,10 +172,11 @@ public class ClientHandler implements Runnable {
                             cipher.init(Cipher.ENCRYPT_MODE, secretKey);
 
 
-                            SealedObject sealedObject = new SealedObject(serverMessage, cipher);
+                            byte[] encryptedServerMessageBytes = cipher.doFinal(clientMessage.getMessage().getBytes());
+                            serverMessage.setMessage(Base64.getEncoder().encodeToString(encryptedServerMessageBytes));
 
-                            byte[] sealedObjectBytes = SerializationUtils.serialize(sealedObject);
-                            signedMessage = MessageSigner.signMessage(clientSpec.getHashingAlgorithm(), Server.signingKeys.getPrivate(), sealedObjectBytes);
+                            byte[] serverMessageBytes = SerializationUtils.serialize(serverMessage);
+                            signedMessage = MessageSigner.signMessage(clientSpec.getHashingAlgorithm(), Server.signingKeys.getPrivate(), serverMessageBytes);
                         }
                         case ASYMMETRIC -> {
                             Cipher cipher = Cipher.getInstance(clientSpec.getEncryptionAlgorithm());

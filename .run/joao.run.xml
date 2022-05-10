@@ -2,7 +2,7 @@
   <configuration default="false" name="joao" type="Application" factoryName="Application" singleton="false">
     <option name="MAIN_CLASS_NAME" value="client.Main" />
     <module name="pa-tls-chat" />
-    <option name="PROGRAM_PARAMETERS" value="--encryption-algorithms=RSA --key-size=1024 --host=localhost --port=80 --name=mario -m=MD5withRSA" />
+    <option name="PROGRAM_PARAMETERS" value="--encryption-algorithms=DES --key-size=64 --host=localhost --port=80 --name=mario -m=MD5withRSA" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="client.*" />
