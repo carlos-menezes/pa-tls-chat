@@ -4,20 +4,38 @@ import java.io.Serializable;
 import java.math.BigInteger;
 import java.security.PublicKey;
 
+/**
+ * {@link ServerHello} is the initial message sent by client in order to initiate secure communication with the server.
+ */
 public class ServerHello implements Serializable {
 
     private BigInteger publicDHKey;
     private PublicKey publicSigningKey;
     private PublicKey publicRSAKey;
 
+    /**
+     * Returns the server public Diffie-Hellman key
+     *
+     * @return Server public Diffie-Hellman key
+     */
     public BigInteger getPublicDHKey() {
         return publicDHKey;
     }
 
+    /**
+     * Returns the server public signing key
+     *
+     * @return Server public signing key
+     */
     public PublicKey getPublicSigningKey() {
         return publicSigningKey;
     }
 
+    /**
+     * Returns the server public RSA key
+     *
+     * @return Server public RSA key
+     */
     public PublicKey getPublicRSAKey() {
         return publicRSAKey;
     }
