@@ -12,6 +12,7 @@ public class ServerClientTest {
     @DisplayName("Should be able to extract the message")
     void testGetMessage() {
         ServerMessage serverMessage = new ServerMessage(sender, message);
+        serverMessage.setMessage(message);
         String message = serverMessage.getMessage();
         assertEquals(message, "Hello World");
     }
@@ -22,11 +23,5 @@ public class ServerClientTest {
         ServerMessage serverMessage = new ServerMessage(sender, message);
         String senderResult = serverMessage.getSender();
         assertEquals(sender, senderResult);
-    }
-
-    @Test
-    @DisplayName("Should be able to get the hash value")
-    void testGetHash() {
-        // TODO
     }
 }

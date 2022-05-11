@@ -49,10 +49,4 @@ public class ClientMessageTest {
         HashSet<String> expectedResult = new HashSet<>();
         assertEquals(broadcast, expectedResult);
     }
-
-    @Test
-    @DisplayName("Should be able to get the hash value")
-    void testGetHash() {
-        // TODO:
-    }
 }

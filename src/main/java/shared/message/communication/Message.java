@@ -29,28 +29,13 @@ public abstract class Message implements Serializable {
         return message;
     }
 
-    //
+    /**
+     * Method that sets the message
+     *
+     * @param message Message
+     */
     public void setMessage(String message) {
         this.message = message;
     }
-
-    /**
-     * Method that returns the hash of the message.
-     *
-     * @return The hash of the message, <code>null</code> if the client doesn't support
-     *         any hashing algorithm
-     */
-    public String getHash() {
-        return hash;
-    }
-
-    /**
-     * Sets the value of {@link #hash}.
-     * @param hash value of hash
-     */
-    public void setHash(String hash) {
-        this.hash = hash;
-    }
-
 
 }
