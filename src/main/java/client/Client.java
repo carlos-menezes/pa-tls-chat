@@ -34,6 +34,9 @@ import java.util.Scanner;
 import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
 
+/**
+ * The <code>Client</code> class represents a client that enters the chat to communicate with others
+ */
 @CommandLine.Command(name = "client", mixinStandardHelpOptions = true, version = "0.1")
 public class Client implements Callable<Integer> {
     private static final String INPUT_PROMPT = "> ";
@@ -177,6 +180,9 @@ public class Client implements Callable<Integer> {
         }).start();
     }
 
+    /**
+     * Method that sends messages to the server
+     */
     private void writeMessages() throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException,
             IllegalBlockSizeException, BadPaddingException, SignatureException {
         while (this.socket.isConnected()) {
@@ -214,76 +220,161 @@ public class Client implements Callable<Integer> {
         }
     }
 
+    /**
+     * Prints the input prompt
+     */
     private void displayInputPrompt() {
         System.out.print(INPUT_PROMPT);
     }
 
+    /**
+     * Closes the socket connection
+     */
     private void closeConnection() throws IOException {
         this.socket.close();
         this.objectOutputStream.close();
         this.objectInputStream.close();
     }
 
+    /**
+     * Method that returns the encryption algorithm used by the client
+     *
+     * @return Clients encryption algorithm
+     */
     public String getEncryptionAlgorithm() {
         return encryptionAlgorithm;
     }
 
+    /**
+     * Method that returns the clients encryption key size
+     *
+     * @return Clients encryption key size
+     */
     public Integer getKeySize() {
         return keySize;
     }
 
+    /**
+     * Method that returns the clients hashing algorithm
+     *
+     * @return Clients hashing algorithm
+     */
     public String getHashingAlgorithm() {
         return hashingAlgorithm;
     }
 
+    /**
+     * Method that returns the clients name
+     *
+     * @return Clients name
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * Method that returns the clients socket
+     *
+     * @return Clients socket
+     */
     public Socket getSocket() {
         return socket;
     }
 
+    /**
+     * Method that returns the clients encryption type
+     *
+     * @return Clients encryption type
+     */
     public EncryptionAlgorithmType getEncryptionAlgorithmType() {
         return encryptionAlgorithmType;
     }
 
+    /**
+     * Method that returns the clients encryption key
+     *
+     * @return Clients encryption key
+     */
     public BigInteger getEncryptionKey() {
         return encryptionKey;
     }
 
+    /**
+     * Method that sets the clients encryption key
+     *
+     * @param encryptionKey Clients encryption key
+     */
     public void setEncryptionKey(BigInteger encryptionKey) {
         this.encryptionKey = encryptionKey;
     }
 
+    /**
+     * Method that returns the clients signing keys
+     *
+     * @return Clients signing keys
+     */
     public KeyPair getSigningKeys() {
         return signingKeys;
     }
 
+    /**
+     * Method that returns the clients RSA keys
+     *
+     * @return Clients RSA keys
+     */
     public KeyPair getRSAKeys() {
         return RSAKeys;
     }
 
+    /**
+     * Method that returns the server RSA key
+     *
+     * @return Server RSA key
+     */
     public PublicKey getServerRSAKey() {
         return serverRSAKey;
     }
 
+    /**
+     * Method that sets the server RSA key
+     * @param serverRSAKey
+     */
     public void setServerRSAKey(PublicKey serverRSAKey) {
         this.serverRSAKey = serverRSAKey;
     }
 
+    /**
+     * Method that returns the server signing key
+     *
+     * @return Server signing key
+     */
     public PublicKey getServerSigningKey() {
         return serverRSAKey;
     }
 
+    /**
+     * Method that sets the server signing key
+     *
+     * @param serverSigningKey Server signing key
+     */
     public void setServerSigningKey(PublicKey serverSigningKey) {
         this.serverSigningKey = serverSigningKey;
     }
 
+    /**
+     * Method that returns the object output stream of the connection to the client
+     *
+     * @return Object output stream of the connection to the client
+     */
     public ObjectOutputStream getObjectOutputStream() {
         return objectOutputStream;
     }
 
+    /**
+     * Method that returns the object input stream of the connection to the client
+     *
+     * @return Object input stream of the connection to the client
+     */
     public ObjectInputStream getObjectInputStream() {
         return objectInputStream;
     }

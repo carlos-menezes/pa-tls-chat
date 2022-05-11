@@ -16,6 +16,9 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * The <code>Server</code> class represents the server from whom the clients are going to connect to
+ */
 @CommandLine.Command(name = "server", mixinStandardHelpOptions = true, version = "0.1")
 public class Server implements Callable<Integer> {
     public static ConcurrentHashMap<String, ClientSpec> clients;
@@ -25,6 +28,9 @@ public class Server implements Callable<Integer> {
     @CommandLine.Option(names = {"--port"}, description = "Server to run the port on", required = true)
     private Integer port;
 
+    /**
+     * Method that generates the RSA keys
+     */
     private static void populateRSAKeys() throws NoSuchAlgorithmException {
         List<Integer> keySizes = new RSAValidator().getKeySizes();
         for (Integer keySize : keySizes) {
