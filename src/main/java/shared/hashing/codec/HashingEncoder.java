@@ -1,5 +1,6 @@
 package shared.hashing.codec;
 
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -14,15 +15,10 @@ public class HashingEncoder {
      * @param message   string to hash
      * @return hex representation of the hash
      */
-    public static byte[] createDigest(String algorithm, String message) {
-        try {
+    public static byte[] createDigest(String algorithm, String message) throws NoSuchAlgorithmException {
             MessageDigest messageDigest = MessageDigest.getInstance(algorithm);
-            return messageDigest.digest(message.getBytes());
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
-
-        return null;
+            messageDigest.update(message.getBytes(StandardCharsets.UTF_8));
+            return messageDigest.digest();
     }
 
     /**
