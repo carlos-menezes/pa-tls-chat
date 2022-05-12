@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Run Client &quot;otavio&quot;" type="Application" factoryName="Application" singleton="false">
+    <option name="MAIN_CLASS_NAME" value="client.Main" />
+    <module name="pa-tls-chat" />
+    <option name="PROGRAM_PARAMETERS" value="-e=RSA -k=4096 -m=MD5 --host=localhost --port=4000 -n otavio" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="client.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
