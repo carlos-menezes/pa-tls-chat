@@ -10,6 +10,9 @@ import java.net.Socket;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * The <code>Server</code> class represents the server from whom the clients are going to connect to
+ */
 @CommandLine.Command(name = "server", mixinStandardHelpOptions = true, version = "0.1")
 public class Server implements Callable<Integer> {
     public static ConcurrentHashMap<String, ClientSpec> clients;

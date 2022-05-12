@@ -29,6 +29,9 @@ import java.security.SignatureException;
 import java.util.HashSet;
 import java.util.Objects;
 
+/**
+ * The <code>ClientHandler</code> class represents all the operations to handle the communication with a client
+ */
 public class ClientHandler implements Runnable {
     private final Socket socket;
     private final ObjectInputStream objectInputStream;

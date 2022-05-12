@@ -31,6 +31,9 @@ import java.util.Scanner;
 import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
 
+/**
+ * The <code>Client</code> class represents a client that enters the chat to communicate with others
+ */
 @CommandLine.Command(name = "client", mixinStandardHelpOptions = true, version = "0.1")
 public class Client implements Callable<Integer> {
     private static final String INPUT_PROMPT = "> ";
@@ -146,7 +149,9 @@ public class Client implements Callable<Integer> {
                     Object message = this.objectInputStream.readObject();
                     if (message instanceof ServerMessage serverMessage) {
                         byte[] decodedContent = Decoder.decodeMessage(serverMessage.getMessage(), this);
-                        boolean validHash = Decoder.validateSignature(decodedContent, this.getHashingAlgorithm(), this.getServerSigningKey(), serverMessage.getSignature());
+                        boolean validHash = Decoder.validateSignature(decodedContent, this.getHashingAlgorithm(),
+                                                                      this.getServerSigningKey(),
+                                                                      serverMessage.getSignature());
 
                         // Verify if hashes match
                         if (!validHash) {
@@ -172,6 +177,9 @@ public class Client implements Callable<Integer> {
         }).start();
     }
 
+    /**
+     * Method that sends messages to the server
+     */
     private void writeMessages() throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException,
             IllegalBlockSizeException, BadPaddingException, SignatureException {
         while (this.socket.isConnected()) {
@@ -202,60 +210,111 @@ public class Client implements Callable<Integer> {
         }
     }
 
+    /**
+     * Prints the input prompt
+     */
     private void displayInputPrompt() {
         System.out.print(INPUT_PROMPT);
     }
 
+    /**
+     * Closes the socket connection
+     */
     private void closeConnection() throws IOException {
         this.socket.close();
         this.objectOutputStream.close();
         this.objectInputStream.close();
     }
 
+    /**
+     * Method that returns the encryption algorithm used by the client
+     *
+     * @return Clients encryption algorithm
+     */
     public String getEncryptionAlgorithm() {
         return encryptionAlgorithm;
     }
 
+    /**
+     * Method that returns the clients encryption key size
+     *
+     * @return Clients encryption key size
+     */
     public Integer getKeySize() {
         return keySize;
     }
 
+    /**
+     * Method that returns the clients hashing algorithm
+     *
+     * @return Clients hashing algorithm
+     */
     public String getHashingAlgorithm() {
         return hashingAlgorithm;
     }
 
+    /**
+     * Method that returns the clients name
+     *
+     * @return Clients name
+     */
     public String getName() {
         return name;
     }
 
-    public String getHost() {
-        return host;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
+    /**
+     * Method that returns the clients socket
+     *
+     * @return Clients socket
+     */
     public Socket getSocket() {
         return socket;
     }
 
+    /**
+     * Method that returns the clients encryption type
+     *
+     * @return Clients encryption type
+     */
     public EncryptionAlgorithmType getEncryptionAlgorithmType() {
         return encryptionAlgorithmType;
     }
 
+    /**
+     * Method that returns the client's symmetric encryption key
+     *
+     * @return Client's symmetric encryption key
+     */
     public BigInteger getSymmetricEncryptionKey() {
         return symmetricEncryptionKey;
     }
 
+    /**
+     * Method that sets the clients symmetric encryption key
+     *
+     * @param symmetricEncryptionKey Clients symmetric encryption key
+     */
     public void setSymmetricEncryptionKey(BigInteger symmetricEncryptionKey) {
         this.symmetricEncryptionKey = symmetricEncryptionKey;
     }
 
+    /**
+     * Method that returns the clients signing keys
+     *
+     * @return Clients signing keys
+     */
     public KeyPair getSigningKeys() {
         return signingKeys;
     }
 
+    /**
+     * Method that returns the clients RSA keys
+     *
+     * @return Clients RSA keys
+     */
+    public KeyPair getRSAKeys() {
+        return RSAKeys;
+    }
 
     public PublicKey getServerSigningKey() {
         return serverSigningKey;
@@ -265,26 +324,56 @@ public class Client implements Callable<Integer> {
         this.serverSigningKey = serverSigningKey;
     }
 
-    public KeyPair getRSAKeys() {
-        return RSAKeys;
-    }
-
-    public void setRSAKeys(KeyPair RSAKeys) {
-        this.RSAKeys = RSAKeys;
-    }
-
+    /**
+     * Method that returns the server RSA key
+     *
+     * @return Server RSA key
+     */
     public PublicKey getServerRSAKey() {
         return serverRSAKey;
     }
 
+    /**
+     * Method that sets the server RSA key
+     *
+     * @param serverRSAKey
+     */
     public void setServerRSAKey(PublicKey serverRSAKey) {
         this.serverRSAKey = serverRSAKey;
     }
 
+    /**
+     * Method that returns the server signing key
+     *
+     * @return Server signing key
+     */
+    public PublicKey getServerSigningKey() {
+        return serverRSAKey;
+    }
+
+    /**
+     * Method that sets the server signing key
+     *
+     * @param serverSigningKey Server signing key
+     */
+    public void setServerSigningKey(PublicKey serverSigningKey) {
+        this.serverSigningKey = serverSigningKey;
+    }
+
+    /**
+     * Method that returns the object output stream of the connection to the client
+     *
+     * @return Object output stream of the connection to the client
+     */
     public ObjectOutputStream getObjectOutputStream() {
         return objectOutputStream;
     }
 
+    /**
+     * Method that returns the object input stream of the connection to the client
+     *
+     * @return Object input stream of the connection to the client
+     */
     public ObjectInputStream getObjectInputStream() {
         return objectInputStream;
     }

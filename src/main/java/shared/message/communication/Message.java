@@ -27,12 +27,20 @@ public abstract class Message implements Serializable {
         return message;
     }
 
-
+    /**
+     * Method that sets the message
+     *
+     * @param message Message
+     */
     public void setMessage(byte[] message) {
         this.message = message;
     }
 
-
+    /**
+     * Method that returns the signature of the message.
+     *
+     * @return The signature of the message.
+     */
     public byte[] getSignature() {
         return signature;
     }

@@ -5,7 +5,7 @@ import shared.hashing.validator.HashingValidator;
 import java.util.List;
 
 /**
- * Signals that there was an attempt to use an unsuppoted hashing algorithm (i.e. not supported by the JVM).
+ * Signals that there was an attempt to use an unsupported hashing algorithm (i.e. not supported by the JVM).
  * The class <code>UnsupportedHashingAlgorithmException</code> is a subclass of {@link RuntimeException} and will be
  * thrown by {@link HashingValidator}.
  */
