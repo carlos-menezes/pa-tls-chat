@@ -370,22 +370,48 @@ public class Client implements Callable<Integer> {
         return objectInputStream;
     }
 
+    /**
+     * Sets signing keys.
+     *
+     * @param signingKeys the signing keys
+     */
     public void setSigningKeys(KeyPair signingKeys) {
         this.signingKeys = signingKeys;
     }
 
+    /**
+     * Sets name.
+     *
+     * @param name the name
+     */
     public void setName(String name) {
         this.name = name;
     }
 
+    /**
+     * Sets encryption algorithm type.
+     *
+     * @param encryptionAlgorithmType the encryption algorithm type
+     */
     public void setEncryptionAlgorithmType(EncryptionAlgorithmType encryptionAlgorithmType) {
         this.encryptionAlgorithmType = encryptionAlgorithmType;
     }
 
+    /**
+     * Sets encryption algorithm.
+     *
+     * @param encryptionAlgorithm the encryption algorithm
+     */
     public void setEncryptionAlgorithm(String encryptionAlgorithm) {
         this.encryptionAlgorithm = encryptionAlgorithm;
     }
 
+
+    /**
+     * Sets key size.
+     *
+     * @param keySize the key size
+     */
     public void setKeySize(Integer keySize) {
         this.keySize = keySize;
     }
