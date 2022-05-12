@@ -154,8 +154,8 @@ public class ClientHandler implements Runnable {
         } else {
             this.name = message.getName();
             // Generate Diffie-Hellman keys for symmetric encryption
-            BigInteger privateDHKey = DiffieHellman.generatePrivateKey();
-            BigInteger publicDHKey = DiffieHellman.generatePublicKey(privateDHKey);
+            BigInteger privateDiffieHellmanKey = DiffieHellman.generatePrivateKey();
+            BigInteger publicDiffieHellmanKey = DiffieHellman.generatePublicKey(privateDiffieHellmanKey);
             ClientSpec.Builder clientSpecBuilder = new ClientSpec.Builder().withSocket(this.socket)
                                                                            .withEncryptionAlgorithm(
                                                                                    message.getEncryptionAlgorithm())
@@ -178,8 +178,8 @@ public class ClientHandler implements Runnable {
                 case SYMMETRIC -> {
                     // Compute a shared private key from the incoming message's public DH key and the generated
                     // private key
-                    BigInteger sharedPrivateKey = DiffieHellman.computePrivateKey(message.getPublicDHKey(),
-                                                                                  privateDHKey);
+                    BigInteger sharedPrivateKey = DiffieHellman.computePrivateKey(message.getPublicDiffieHellmanKey(),
+                                                                                  privateDiffieHellmanKey);
                     clientSpecBuilder.withSymmetricEncryptionKey(sharedPrivateKey);
                 }
                 case ASYMMETRIC -> {
@@ -200,7 +200,7 @@ public class ClientHandler implements Runnable {
 
             switch (message.getEncryptionAlgorithmType()) {
                 case SYMMETRIC -> // Send the generated public DH key to the client so it can compute the shared key.
-                        serverHelloBuilder.withPublicDHKey(publicDHKey);
+                        serverHelloBuilder.withPublicDiffieHellmanKey(publicDiffieHellmanKey);
                 case ASYMMETRIC -> // Send the server's public RSA key
                         serverHelloBuilder.withPublicRSAKey(clientSpec.getServerRSAKeys().getPublic());
             }

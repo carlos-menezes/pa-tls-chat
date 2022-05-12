@@ -53,7 +53,7 @@ public class Handshake implements Callable<Integer> {
         // 1. Create and send `CLIENT_HELLO`
         ClientHello clientHello = new ClientHello(this.client);
         if (this.client.getEncryptionAlgorithmType() == EncryptionAlgorithmType.SYMMETRIC) {
-            clientHello.setPublicDHKey(publicDHKey);
+            clientHello.setPublicDiffieHellmanKey(publicDHKey);
         }
         this.sendMessage(clientHello);
 
@@ -73,7 +73,7 @@ public class Handshake implements Callable<Integer> {
         switch (this.client.getEncryptionAlgorithmType()) {
             case SYMMETRIC -> {
                 // The computed, shared Diffie-Hellman key is used to derive a key for the chosen symmetric algorithm.
-                BigInteger serverPublicDHKey = serverHello.getPublicDHKey();
+                BigInteger serverPublicDHKey = serverHello.getPublicDiffieHellmanKey();
                 BigInteger privateSharedDHKey = DiffieHellman.computePrivateKey(serverPublicDHKey, privateDHKey);
                 this.client.setSymmetricEncryptionKey(privateSharedDHKey);
             }

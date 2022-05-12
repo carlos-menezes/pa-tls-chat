@@ -16,7 +16,7 @@ public class ClientHello implements Serializable {
     private final String hashingAlgorithm;
     private final String name;
     private final EncryptionAlgorithmType encryptionAlgorithmType;
-    private BigInteger publicDHKey;
+    private BigInteger publicDiffieHellmanKey;
     private final PublicKey publicSigningKey;
     private final PublicKey publicRSAKey;
 
@@ -90,8 +90,8 @@ public class ClientHello implements Serializable {
      *
      * @return Client's public Diffie-Hellman key
      */
-    public BigInteger getPublicDHKey() {
-        return this.publicDHKey;
+    public BigInteger getPublicDiffieHellmanKey() {
+        return this.publicDiffieHellmanKey;
     }
 
     /**
@@ -115,9 +115,9 @@ public class ClientHello implements Serializable {
     /**
      * Method that sets the client's public Diffie-Hellman public key
      *
-     * @param publicDHKey Client's public Diffie-Hellman public key
+     * @param publicDiffieHellmanKey Client's public Diffie-Hellman public key
      */
-    public void setPublicDHKey(BigInteger publicDHKey) {
-        this.publicDHKey = publicDHKey;
+    public void setPublicDiffieHellmanKey(BigInteger publicDiffieHellmanKey) {
+        this.publicDiffieHellmanKey = publicDiffieHellmanKey;
     }
 }

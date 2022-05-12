@@ -9,7 +9,7 @@ import java.security.PublicKey;
  */
 public class ServerHello implements Serializable {
 
-    private BigInteger publicDHKey;
+    private BigInteger publicDiffieHellmanKey;
     private PublicKey publicSigningKey;
     private PublicKey publicRSAKey;
 
@@ -18,8 +18,8 @@ public class ServerHello implements Serializable {
      *
      * @return Server public Diffie-Hellman key
      */
-    public BigInteger getPublicDHKey() {
-        return publicDHKey;
+    public BigInteger getPublicDiffieHellmanKey() {
+        return publicDiffieHellmanKey;
     }
 
     /**
@@ -41,15 +41,15 @@ public class ServerHello implements Serializable {
     }
 
     public static final class Builder {
-        private BigInteger publicDHKey;
+        private BigInteger publicDiffieHellmanKey;
         private PublicKey publicSigningKey;
         private PublicKey publicRSAKey;
 
         public Builder() {
         }
 
-        public Builder withPublicDHKey(BigInteger publicDHKey) {
-            this.publicDHKey = publicDHKey;
+        public Builder withPublicDiffieHellmanKey(BigInteger publicDHKey) {
+            this.publicDiffieHellmanKey = publicDHKey;
             return this;
         }
 
@@ -68,7 +68,7 @@ public class ServerHello implements Serializable {
             ServerHello serverHello = new ServerHello();
             serverHello.publicRSAKey = this.publicRSAKey;
             serverHello.publicSigningKey = this.publicSigningKey;
-            serverHello.publicDHKey = this.publicDHKey;
+            serverHello.publicDiffieHellmanKey = this.publicDiffieHellmanKey;
             return serverHello;
         }
     }

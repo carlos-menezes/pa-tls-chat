@@ -283,7 +283,7 @@ public class Client implements Callable<Integer> {
     /**
      * Method that returns the client's symmetric encryption key
      *
-     * @return Client's symmetric encryption key
+     * @return Client 's symmetric encryption key
      */
     public BigInteger getSymmetricEncryptionKey() {
         return symmetricEncryptionKey;
@@ -416,8 +416,23 @@ public class Client implements Callable<Integer> {
         this.keySize = keySize;
     }
 
+    /**
+     * Sets hashing algorithm.
+     *
+     * @param hashingAlgorithm the hashing algorithm
+     */
     public void setHashingAlgorithm(String hashingAlgorithm) {
         this.hashingAlgorithm = hashingAlgorithm;
+    }
+
+
+    /**
+     * Sets RSA keys.
+     *
+     * @param RSAKeys the RSA keys
+     */
+    public void setRSAKeys(KeyPair RSAKeys) {
+        this.RSAKeys = RSAKeys;
     }
 
     @Override
