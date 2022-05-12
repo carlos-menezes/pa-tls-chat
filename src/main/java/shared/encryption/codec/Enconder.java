@@ -47,9 +47,9 @@ public class Enconder {
         return cipher.doFinal(message.getBytes());
     }
 
-    public static byte[] createSignature(String content, String algorithm, PrivateKey privateKey) throws NoSuchAlgorithmException,
+    public static byte[] createSignature(String content, String hashingAlgorithm, PrivateKey privateKey) throws NoSuchAlgorithmException,
             InvalidKeyException, SignatureException {
-        Signature signature = Signature.getInstance(algorithm.replace("-", "") + "withRSA");
+        Signature signature = Signature.getInstance(hashingAlgorithm.replace("-", "") + "withRSA");
         signature.initSign(privateKey);
         signature.update(content.getBytes());
         return signature.sign();
