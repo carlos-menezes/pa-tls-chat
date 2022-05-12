@@ -21,12 +21,12 @@ class TripleDESValidatorTest {
 
     @Test
     void TestGetAlgorithmName() {
-        assertEquals(this.validator.getName(), "ThreeDES");
+        assertEquals(this.validator.getName(), "TripleDES");
     }
 
     @Test
     void TestGetKeySizes() {
-        assertEquals(this.validator.getKeySizes(), List.of(168));
+        assertEquals(this.validator.getKeySizes(), List.of(192));
     }
 
     @Test
@@ -42,6 +42,6 @@ class TripleDESValidatorTest {
 
     @Test
     void ValidKeySizeTest() {
-        assertDoesNotThrow(() -> this.validator.validate(168));
+        assertDoesNotThrow(() -> this.validator.validate(192));
     }
 }

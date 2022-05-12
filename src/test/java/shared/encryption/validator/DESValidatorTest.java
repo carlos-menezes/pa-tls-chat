@@ -28,7 +28,7 @@ class DESValidatorTest {
 
     @Test
     void TestGetKeySizes() {
-        assertEquals(this.validator.getKeySizes(), List.of(56));
+        assertEquals(this.validator.getKeySizes(), List.of(64));
     }
 
     @Test
@@ -44,6 +44,6 @@ class DESValidatorTest {
 
     @Test
     void ValidKeySizeTest() {
-        assertDoesNotThrow(() -> this.validator.validate(56));
+        assertDoesNotThrow(() -> this.validator.validate(64));
     }
 }
