@@ -9,7 +9,6 @@ import shared.logging.Messages;
 import shared.message.communication.ClientMessage;
 import shared.message.communication.ServerMessage;
 import shared.message.communication.ServerUserStatusMessage;
-import shared.message.communication.SignedMessage;
 import shared.message.handshake.ClientHello;
 import shared.message.handshake.ServerError;
 import shared.message.handshake.ServerHello;
@@ -95,7 +94,7 @@ public class ClientHandler implements Runnable {
     }
 
     /**
-     * Handles a {@link SignedMessage}.
+     * Handles a {@link ClientMessage}.
      *
      * @throws IOException
      */
@@ -157,23 +156,7 @@ public class ClientHandler implements Runnable {
             // Generate Diffie-Hellman keys for symmetric encryption
             BigInteger privateDHKey = DiffieHellman.generatePrivateKey();
             BigInteger publicDHKey = DiffieHellman.generatePublicKey(privateDHKey);
-            ClientSpec.Builder clientSpecBuilder = new ClientSpec.Builder().withSocket(this.socket)
-                                                                           .withEncryptionAlgorithm(
-                                                                                   message.getEncryptionAlgorithm())
-                                                                           .withKeySize(message.getKeySize())
-                                                                           .withHashingAlgorithm(
-                                                                                   message.getHashingAlgorithm())
-                                                                           .withEncryptionAlgorithmType(
-                                                                                   message.getEncryptionAlgorithmType())
-                                                                           .withObjectInputStream(
-                                                                                   this.objectInputStream)
-                                                                           .withPublicSigningKey(
-                                                                                   message.getPublicSigningKey())
-                                                                           .withObjectOutputStream(
-                                                                                   this.objectOutputStream)
-                                                                           .withServerSigningKeys(
-                                                                                   AsymmetricEncryptionScheme.generateKeys(
-                                                                                           4096));
+            ClientSpec.Builder clientSpecBuilder = new ClientSpec.Builder().withSocket(this.socket);
 
             switch (message.getEncryptionAlgorithmType()) {
                 case SYMMETRIC -> {
