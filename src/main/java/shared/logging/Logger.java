@@ -54,7 +54,8 @@ public class Logger {
     /**
      * Method that writes a simple message on the terminal
      *
-     * @param serverMessage Message from the server
+     * @param sender Sender
+     * @param message message
      */
-    public static void message(ServerMessage serverMessage) { write(serverMessage.getSender(), serverMessage.getMessage()); }
+    public static void message(String sender, String message) { write(sender, message); }
 }
