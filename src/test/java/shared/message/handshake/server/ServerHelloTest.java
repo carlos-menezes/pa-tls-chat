@@ -18,11 +18,11 @@ class ServerHelloTest {
         BigInteger publicKey = DiffieHellman.generatePublicKey(privateKey);
         KeyPair keyPair = AsymmetricEncryptionScheme.generateKeys(1024);
         ServerHello serverHello = new ServerHello.Builder()
-                .withPublicDHKey(publicKey)
+                .withPublicDiffieHellmanKey(publicKey)
                 .withPublicRSAKey(keyPair.getPublic())
                 .build();
 
-        assertEquals(serverHello.getPublicDHKey(), publicKey);
+        assertEquals(serverHello.getPublicDiffieHellmanKey(), publicKey);
         assertEquals(serverHello.getPublicRSAKey(), keyPair.getPublic());
     }
 }
