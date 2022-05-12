@@ -149,12 +149,12 @@ public class Client implements Callable<Integer> {
                     Object message = this.objectInputStream.readObject();
                     if (message instanceof ServerMessage serverMessage) {
                         byte[] decodedContent = Decoder.decodeMessage(serverMessage.getMessage(), this);
-                        boolean validHash = Decoder.validateSignature(decodedContent, this.getHashingAlgorithm(),
+                        boolean validateSignature = Decoder.validateSignature(decodedContent, this.getHashingAlgorithm(),
                                                                       this.getServerSigningKey(),
                                                                       serverMessage.getSignature());
 
                         // Verify if hashes match
-                        if (!validHash) {
+                        if (!validateSignature) {
                             Logger.error("Hashes do not match");
                         }
 
@@ -316,14 +316,6 @@ public class Client implements Callable<Integer> {
         return RSAKeys;
     }
 
-    public PublicKey getServerSigningKey() {
-        return serverSigningKey;
-    }
-
-    public void setServerSigningKey(PublicKey serverSigningKey) {
-        this.serverSigningKey = serverSigningKey;
-    }
-
     /**
      * Method that returns the server RSA key
      *
@@ -336,7 +328,7 @@ public class Client implements Callable<Integer> {
     /**
      * Method that sets the server RSA key
      *
-     * @param serverRSAKey
+     * @param serverRSAKey server's RSA key
      */
     public void setServerRSAKey(PublicKey serverRSAKey) {
         this.serverRSAKey = serverRSAKey;
@@ -348,7 +340,7 @@ public class Client implements Callable<Integer> {
      * @return Server signing key
      */
     public PublicKey getServerSigningKey() {
-        return serverRSAKey;
+        return serverSigningKey;
     }
 
     /**
