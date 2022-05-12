@@ -5,7 +5,6 @@ import shared.encryption.validator.EncryptionAlgorithmType;
 import shared.keys.schemes.AsymmetricEncryptionScheme;
 import shared.keys.schemes.DiffieHellman;
 
-import java.io.IOException;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.security.KeyPair;
@@ -19,7 +18,6 @@ class ClientSpecTest {
     @Test
     void TestClientSpecAsymmetric() throws NoSuchAlgorithmException {
         KeyPair rsaKeys = AsymmetricEncryptionScheme.generateKeys(1024);
-        BigInteger privateSharedDHKey = DiffieHellman.generatePrivateKey();
         Socket socket = new Socket();
         ClientSpec clientSpec = new ClientSpec.Builder()
                 .withSocket(socket)
@@ -27,16 +25,14 @@ class ClientSpecTest {
                 .withEncryptionAlgorithm("RSA")
                 .withKeySize(1024)
                 .withPublicRSAKey(rsaKeys.getPublic())
-                .withHashingAlgorithm("MD4")
-                .withPrivateSharedDHKey(privateSharedDHKey)
+                .withHashingAlgorithm("MD5")
                 .build();
         assertEquals(clientSpec.getSocket(), socket);
         assertEquals(clientSpec.getEncryptionAlgorithmType(), EncryptionAlgorithmType.ASYMMETRIC);
         assertEquals(clientSpec.getEncryptionAlgorithm(), "RSA");
         assertEquals(clientSpec.getKeySize(), 1024);
         assertEquals(clientSpec.getPublicRSAKey(), rsaKeys.getPublic());
-        assertEquals(clientSpec.getHashingAlgorithm(), "MD4");
-        assertEquals(clientSpec.getPrivateSharedDHKey(), privateSharedDHKey);
+        assertEquals(clientSpec.getHashingAlgorithm(), "MD5");
     }
 
     @Test
@@ -48,15 +44,15 @@ class ClientSpecTest {
                 .withEncryptionAlgorithmType(EncryptionAlgorithmType.SYMMETRIC)
                 .withEncryptionAlgorithm("AES")
                 .withKeySize(128)
-                .withHashingAlgorithm("MD4")
-                .withPrivateSharedDHKey(privateSharedDHKey)
+                .withHashingAlgorithm("MD5")
+                .withSymmetricEncryptionKey(privateSharedDHKey)
                 .build();
         assertEquals(clientSpec.getSocket(), socket);
         assertEquals(clientSpec.getEncryptionAlgorithmType(), EncryptionAlgorithmType.SYMMETRIC);
         assertEquals(clientSpec.getEncryptionAlgorithm(), "AES");
         assertEquals(clientSpec.getKeySize(), 128);
         assertNull(clientSpec.getPublicRSAKey());
-        assertEquals(clientSpec.getHashingAlgorithm(), "MD4");
-        assertEquals(clientSpec.getPrivateSharedDHKey(), privateSharedDHKey);
+        assertEquals(clientSpec.getHashingAlgorithm(), "MD5");
+        assertEquals(clientSpec.getSymmetricEncryptionKey(), privateSharedDHKey);
     }
 }
