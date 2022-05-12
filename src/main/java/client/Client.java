@@ -4,12 +4,12 @@ import client.protocol.Handshake;
 import client.util.Generator;
 import client.util.Validator;
 import picocli.CommandLine;
-import shared.encryption.decoder.MessageDecoder;
-import shared.encryption.encoder.MessageEncoder;
+import shared.encryption.codec.Decoder;
 import shared.encryption.validator.EncryptionAlgorithmType;
 import shared.encryption.validator.EncryptionValidator;
 import shared.encryption.validator.exceptions.InvalidEncryptionAlgorithmException;
 import shared.encryption.validator.exceptions.InvalidKeySizeException;
+import shared.hashing.codec.HashingEncoder;
 import shared.hashing.validator.HashingValidator;
 import shared.hashing.validator.exceptions.InvalidHashingAlgorithmException;
 import shared.hashing.validator.exceptions.UnsupportedHashingAlgorithmException;
@@ -18,8 +18,6 @@ import shared.logging.Logger;
 import shared.message.communication.ClientMessage;
 import shared.message.communication.ServerMessage;
 import shared.message.communication.ServerUserStatusMessage;
-import shared.message.communication.SignedMessage;
-import shared.signing.MessageValidator;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -41,13 +39,15 @@ public class Client implements Callable<Integer> {
      * Commands line options
      */
     @CommandLine.Option(names = {"-e",
-            "--encryption-algorithms"}, description = "Encryption algorithm", required = true)
+                                 "--encryption-algorithms"}, description = "Encryption algorithm", required = true)
     @SuppressWarnings("FieldMayBeFinal")
     private String encryptionAlgorithm = "";
     @CommandLine.Option(names = {"-k", "--key-size"}, description = "Key size", required = true)
     @SuppressWarnings("FieldMayBeFinal")
     private Integer keySize = 0;
-    @CommandLine.Option(names = {"-m", "--hashing-algorithms"}, description = "Hashing algorithm")
+    @CommandLine.Option(names = {"-m",
+                                 "--hashing-algorithms"}, description = "Hashing algorithm", defaultValue =
+            "SHA256withRSA")
     @SuppressWarnings("FieldMayBeFinal")
     private String hashingAlgorithm = "";
     @CommandLine.Option(names = {"-n", "--name"}, description = "Client name")
@@ -62,14 +62,15 @@ public class Client implements Callable<Integer> {
 
     private EncryptionAlgorithmType encryptionAlgorithmType;
 
-    private BigInteger encryptionKey;
+    // Symmetric encryption key
+    private BigInteger symmetricEncryptionKey;
 
     // Signing
     private KeyPair signingKeys;
     private PublicKey serverSigningKey;
 
     // RSA
-    private KeyPair RSAKeys;
+    private KeyPair RSAKeys; // Client's own RSA key pair
     private PublicKey serverRSAKey;
 
     // Streams
@@ -83,11 +84,10 @@ public class Client implements Callable<Integer> {
             EncryptionValidator encryptionValidator = new EncryptionValidator();
             encryptionValidator.validate(this.encryptionAlgorithm, this.keySize);
 
-            // Generates Asymmetric KeyPair for signing purposes
-            this.signingKeys = AsymmetricEncryptionScheme.generateKeys(4096);
+            this.setSigningKeys(AsymmetricEncryptionScheme.generateKeys(4096));
             this.encryptionAlgorithmType = encryptionValidator.getValidators()
-                    .get(this.encryptionAlgorithm)
-                    .getType();
+                                                              .get(this.encryptionAlgorithm)
+                                                              .getType();
             if (this.encryptionAlgorithmType == EncryptionAlgorithmType.ASYMMETRIC) {
                 this.RSAKeys = AsymmetricEncryptionScheme.generateKeys(this.keySize);
             }
@@ -145,32 +145,28 @@ public class Client implements Callable<Integer> {
             while (this.socket.isConnected()) {
                 try {
                     Object message = this.objectInputStream.readObject();
-                    if (message instanceof SignedMessage signedMessage) {
-                        boolean validSignature = MessageValidator.validateMessage(this.getHashingAlgorithm(), this.serverSigningKey, signedMessage);
-                        if (!validSignature) {
-                            continue;
+                    if (message instanceof ServerMessage serverMessage) {
+                        byte[] decodedContent = Decoder.decodeMessage(serverMessage.getMessage(), this);
+                        boolean validHash = Decoder.validateSignature(decodedContent, this.getHashingAlgorithm(), this.getServerSigningKey(), serverMessage.getSignature());
+
+                        // Verify if hashes match
+                        if (!validHash) {
+                            Logger.error("Hashes do not match");
                         }
 
-                        ServerMessage serverMessage = null;
-                        switch (this.encryptionAlgorithmType) {
-                            case SYMMETRIC -> serverMessage = (ServerMessage) MessageDecoder.decodeMessage(signedMessage, this.getEncryptionKey(), this.getKeySize(), this.getEncryptionAlgorithm());
-                            case ASYMMETRIC -> serverMessage = (ServerMessage) MessageDecoder.decodeMessage(signedMessage, this.serverRSAKey, this.getEncryptionAlgorithm());
-                            default -> throw new IllegalStateException("Unexpected value: " + this.encryptionAlgorithmType);
-                        }
-                        Logger.message(serverMessage);
-                    } else {
-                        if (message instanceof ServerUserStatusMessage serverUserStatusMessage) {
-                            Logger.info(serverUserStatusMessage.getMessage());
-                        }
+                        Logger.message(serverMessage.getSender(), new String(decodedContent));
+                    } else if (message instanceof ServerUserStatusMessage serverUserStatusMessage) {
+                        Logger.info(new String(serverUserStatusMessage.getMessage()));
                     }
                 } catch (IOException | ClassNotFoundException e) {
+                    e.printStackTrace();
                     try {
                         closeConnection();
                     } catch (IOException ex) {
-                        Logger.error(ex.getMessage());
+                        e.printStackTrace();
                     }
                     return;
-                } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException e) {
+                } catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException | SignatureException e) {
                     e.printStackTrace();
                 }
             }
@@ -183,26 +179,19 @@ public class Client implements Callable<Integer> {
             this.displayInputPrompt();
             Scanner input = new Scanner(System.in);
             String message = input.nextLine();
-            ClientMessage clientMessage = new ClientMessage(message);
-
-            boolean validMessage = Pattern.matches("^(?!\\s*$).+", clientMessage.getMessage());
+            boolean validMessage = Pattern.matches("^(?!\\s*$).+", message);
             if (!validMessage) {
                 Logger.error("Message must not be empty.");
                 continue;
             }
 
-            SignedMessage signedMessage = null;
-            // Encrypt message
-            switch (this.encryptionAlgorithmType) {
-                case SYMMETRIC -> signedMessage = MessageEncoder.encodeMessage(clientMessage, this.encryptionAlgorithm, this.getEncryptionKey(), this.getKeySize(), this.hashingAlgorithm, this.getSigningKeys().getPrivate());
-                case ASYMMETRIC -> signedMessage = MessageEncoder.encodeMessage(clientMessage, this.encryptionAlgorithm, this.serverRSAKey, this.hashingAlgorithm, this.signingKeys.getPrivate());
-                default -> throw new IllegalStateException("Unexpected value: " + this.encryptionAlgorithmType);
-            }
+            ClientMessage clientMessage = new ClientMessage(message, this);
 
             try {
-                this.objectOutputStream.writeObject(signedMessage);
+                this.objectOutputStream.writeObject(clientMessage);
                 this.objectOutputStream.flush();
             } catch (IOException e) {
+                e.printStackTrace();
                 try {
                     closeConnection();
                     return;
@@ -240,6 +229,14 @@ public class Client implements Callable<Integer> {
         return name;
     }
 
+    public String getHost() {
+        return host;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
     public Socket getSocket() {
         return socket;
     }
@@ -248,20 +245,33 @@ public class Client implements Callable<Integer> {
         return encryptionAlgorithmType;
     }
 
-    public BigInteger getEncryptionKey() {
-        return encryptionKey;
+    public BigInteger getSymmetricEncryptionKey() {
+        return symmetricEncryptionKey;
     }
 
-    public void setEncryptionKey(BigInteger encryptionKey) {
-        this.encryptionKey = encryptionKey;
+    public void setSymmetricEncryptionKey(BigInteger symmetricEncryptionKey) {
+        this.symmetricEncryptionKey = symmetricEncryptionKey;
     }
 
     public KeyPair getSigningKeys() {
         return signingKeys;
     }
 
+
+    public PublicKey getServerSigningKey() {
+        return serverSigningKey;
+    }
+
+    public void setServerSigningKey(PublicKey serverSigningKey) {
+        this.serverSigningKey = serverSigningKey;
+    }
+
     public KeyPair getRSAKeys() {
         return RSAKeys;
+    }
+
+    public void setRSAKeys(KeyPair RSAKeys) {
+        this.RSAKeys = RSAKeys;
     }
 
     public PublicKey getServerRSAKey() {
@@ -272,19 +282,15 @@ public class Client implements Callable<Integer> {
         this.serverRSAKey = serverRSAKey;
     }
 
-    public PublicKey getServerSigningKey() {
-        return serverRSAKey;
-    }
-
-    public void setServerSigningKey(PublicKey serverSigningKey) {
-        this.serverSigningKey = serverSigningKey;
-    }
-
     public ObjectOutputStream getObjectOutputStream() {
         return objectOutputStream;
     }
 
     public ObjectInputStream getObjectInputStream() {
         return objectInputStream;
+    }
+
+    public void setSigningKeys(KeyPair signingKeys) {
+        this.signingKeys = signingKeys;
     }
 }

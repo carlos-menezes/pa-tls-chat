@@ -20,7 +20,7 @@ public class HashingValidator {
      * Constructs a new {@link HashingValidator}.
      */
     public HashingValidator() {
-        this.validAlgorithms = List.of("MD5withRSA", "SHA256withRSA", "SHA512withRSA");
+        this.validAlgorithms = List.of("MD5", "SHA-256", "SHA-512");
     }
 
     /**
@@ -40,11 +40,11 @@ public class HashingValidator {
 
     /**
      * Checks whether a given algorithm is supported by the JVM.
-     * @return true, if it is supporte by the JVM; false, otherwise.
+     * @return true, if it is supported by the JVM; false, otherwise.
      */
     public static boolean isHashingAlgorithmSupported(String algorithm) {
         try {
-            Signature.getInstance(algorithm);
+            MessageDigest.getInstance(algorithm);
             return true;
         } catch (NoSuchAlgorithmException e) {
             return false;

@@ -1,5 +1,14 @@
 package shared.message.communication;
 
+import client.Client;
+import shared.encryption.codec.Enconder;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SignatureException;
 import java.util.HashSet;
 
 /**
@@ -20,8 +29,16 @@ public class ClientMessage extends Message {
      *
      * @param message Raw message sent from the client.
      */
-    public ClientMessage(String message) {
-        super(extractMessage(message));
+    public ClientMessage(String message, Client client) throws NoSuchPaddingException, IllegalBlockSizeException,
+            NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, SignatureException {
+        String messageContent = extractMessage(message);
+
+        byte[] encodedMessage = Enconder.encodeMessage(messageContent, client);
+        this.setMessage(encodedMessage);
+
+        byte[] signature = Enconder.createSignature(messageContent, client.getHashingAlgorithm(), client.getSigningKeys().getPrivate()); // Sign the message with the signing key
+        this.setSignature(signature);
+
         this.users = extractUsers(message);
     }
 

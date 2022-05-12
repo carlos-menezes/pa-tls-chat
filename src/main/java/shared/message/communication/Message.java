@@ -8,16 +8,14 @@ import java.io.Serializable;
  */
 public abstract class Message implements Serializable {
 
-    private String message;
-    private String hash;
+    private byte[] message;
+    private byte[] signature;
 
     /**
-     * Creates a new <code>Message</code> object by specifying its message and corresponding hash.
-     *
-     * @param message The message to be sent
+     * Creates a new <code>Message</code> object.
      */
-    public Message(String message) {
-        this.message = message;
+    public Message() {
+
     }
 
     /**
@@ -25,32 +23,21 @@ public abstract class Message implements Serializable {
      *
      * @return The message to be sent
      */
-    public String getMessage() {
+    public byte[] getMessage() {
         return message;
     }
 
-    //
-    public void setMessage(String message) {
+
+    public void setMessage(byte[] message) {
         this.message = message;
     }
 
-    /**
-     * Method that returns the hash of the message.
-     *
-     * @return The hash of the message, <code>null</code> if the client doesn't support
-     *         any hashing algorithm
-     */
-    public String getHash() {
-        return hash;
+
+    public byte[] getSignature() {
+        return signature;
     }
 
-    /**
-     * Sets the value of {@link #hash}.
-     * @param hash value of hash
-     */
-    public void setHash(String hash) {
-        this.hash = hash;
+    public void setSignature(byte[] signature) {
+        this.signature = signature;
     }
-
-
 }

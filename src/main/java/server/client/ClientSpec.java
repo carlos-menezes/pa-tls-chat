@@ -6,6 +6,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.net.Socket;
+import java.security.KeyPair;
 import java.security.PublicKey;
 
 /**
@@ -23,7 +24,13 @@ public class ClientSpec {
     private EncryptionAlgorithmType encryptionAlgorithmType;
     private PublicKey publicSigningKey;
     private PublicKey publicRSAKey;
-    private BigInteger privateSharedDHKey;
+
+    // Key used to derive the SecretKeySpec for symmetric encryption
+    private BigInteger symmetricEncryptionKey;
+
+    // Keys used to communicate with the client when asymmetric encryption is used
+    private KeyPair serverRSAKeys;
+    private KeyPair serverSigningKeys;
 
     private ObjectInputStream objectInputStream;
     private ObjectOutputStream objectOutputStream;
@@ -56,8 +63,8 @@ public class ClientSpec {
         return publicRSAKey;
     }
 
-    public BigInteger getPrivateSharedDHKey() {
-        return privateSharedDHKey;
+    public BigInteger getSymmetricEncryptionKey() {
+        return symmetricEncryptionKey;
     }
 
     public ObjectInputStream getObjectInputStream() {
@@ -68,6 +75,19 @@ public class ClientSpec {
         return this.objectOutputStream;
     }
 
+    public KeyPair getServerRSAKeys() {
+        return serverRSAKeys;
+    }
+
+    public KeyPair getServerSigningKeys() {
+        return serverSigningKeys;
+    }
+
+    public ClientSpec setServerRSAKeys(KeyPair serverRSAKeys) {
+        this.serverRSAKeys = serverRSAKeys;
+        return this;
+    }
+
     public static final class Builder {
         private Socket socket;
         private String encryptionAlgorithm;
@@ -76,7 +96,13 @@ public class ClientSpec {
         private EncryptionAlgorithmType encryptionAlgorithmType;
         private PublicKey publicSigningKey;
         private PublicKey publicRSAKey;
-        private BigInteger privateSharedDHKey;
+
+        // Key used to derive the SecretKeySpec for symmetric encryption
+        private BigInteger symmetricEncryptionKey;
+
+        // Keys used to communicate with the client when asymmetric encryption is used
+        private KeyPair serverRSAKeys;
+        private KeyPair serverSigningKeys;
 
         private ObjectInputStream objectInputStream;
         private ObjectOutputStream objectOutputStream;
@@ -119,8 +145,8 @@ public class ClientSpec {
             return this;
         }
 
-        public Builder withPrivateSharedDHKey(BigInteger privateSharedDHKey) {
-            this.privateSharedDHKey = privateSharedDHKey;
+        public Builder withSymmetricEncryptionKey(BigInteger symmetricEncryptionKey) {
+            this.symmetricEncryptionKey = symmetricEncryptionKey;
             return this;
         }
 
@@ -134,18 +160,30 @@ public class ClientSpec {
             return this;
         }
 
+        public Builder withServerRSAKeys(KeyPair keyPair) {
+            this.serverRSAKeys = keyPair;
+            return this;
+        }
+
+        public Builder withServerSigningKeys(KeyPair keyPair) {
+            this.serverSigningKeys = keyPair;
+            return this;
+        }
+
         public ClientSpec build() {
             ClientSpec clientSpec = new ClientSpec();
             clientSpec.encryptionAlgorithmType = encryptionAlgorithmType;
             clientSpec.keySize = this.keySize;
             clientSpec.hashingAlgorithm = this.hashingAlgorithm;
-            clientSpec.privateSharedDHKey = this.privateSharedDHKey;
+            clientSpec.symmetricEncryptionKey = this.symmetricEncryptionKey;
             clientSpec.publicSigningKey = this.publicSigningKey;
             clientSpec.publicRSAKey = this.publicRSAKey;
             clientSpec.encryptionAlgorithm = this.encryptionAlgorithm;
             clientSpec.socket = this.socket;
             clientSpec.objectInputStream = this.objectInputStream;
             clientSpec.objectOutputStream = this.objectOutputStream;
+            clientSpec.serverSigningKeys = this.serverSigningKeys;
+            clientSpec.serverRSAKeys = this.serverRSAKeys;
             return clientSpec;
         }
     }

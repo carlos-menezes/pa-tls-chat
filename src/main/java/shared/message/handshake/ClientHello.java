@@ -70,18 +70,4 @@ public class ClientHello implements Serializable {
     public void setPublicDHKey(BigInteger publicDHKey) {
         this.publicDHKey = publicDHKey;
     }
-
-    @Override
-    public String toString() {
-        return "ClientHello{" +
-                "encryptionAlgorithm='" + encryptionAlgorithm + '\'' +
-                ", keySize=" + keySize +
-                ", hashingAlgorithm='" + hashingAlgorithm + '\'' +
-                ", name='" + name + '\'' +
-                ", encryptionAlgorithmType=" + encryptionAlgorithmType +
-                ", publicSigningKey=" + publicSigningKey +
-                ", publicDHKey=" + publicDHKey +
-                ", publicRSAKey=" + publicRSAKey +
-                '}';
-    }
 }

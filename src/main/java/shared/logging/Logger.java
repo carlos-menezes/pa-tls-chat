@@ -1,16 +1,10 @@
 package shared.logging;
 
-import shared.message.communication.ServerMessage;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class Logger {
     private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
-
-    private enum METHOD {
-        INFO,
-        ERROR
-    }
 
     private static void write(String method, String message) {
         LocalDateTime now = LocalDateTime.now();
@@ -29,5 +23,11 @@ public class Logger {
         write(String.valueOf(METHOD.ERROR), message);
     }
 
-    public static void message(ServerMessage serverMessage) { write(serverMessage.getSender(), serverMessage.getMessage()); }
+    public static void message(String sender, String message) {
+        write(sender, message);
+    }
+
+    private enum METHOD {
+        INFO, ERROR
+    }
 }

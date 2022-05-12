@@ -12,6 +12,6 @@ public class ServerUserStatusMessage extends Message {
      * @param message The message to be sent.
      */
     public ServerUserStatusMessage(String message) {
-        super(message);
+        this.setMessage(message.getBytes());
     }
 }

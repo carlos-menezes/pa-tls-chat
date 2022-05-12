@@ -22,14 +22,6 @@ public class ServerHello implements Serializable {
         return publicRSAKey;
     }
 
-    @Override
-    public String toString() {
-        return "ServerHello{" +
-                "publicDHKey=" + publicDHKey +
-                ", publicRSAKey=" + publicRSAKey +
-                '}';
-    }
-
     public static final class Builder {
         private BigInteger publicDHKey;
         private PublicKey publicSigningKey;
@@ -37,7 +29,6 @@ public class ServerHello implements Serializable {
 
         public Builder() {
         }
-
 
         public Builder withPublicDHKey(BigInteger publicDHKey) {
             this.publicDHKey = publicDHKey;

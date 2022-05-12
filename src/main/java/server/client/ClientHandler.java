@@ -1,10 +1,7 @@
 package server.client;
 
 import server.Server;
-import shared.encryption.decoder.MessageDecoder;
-import shared.encryption.encoder.MessageEncoder;
-import shared.encryption.validator.EncryptionAlgorithmType;
-import shared.encryption.validator.EncryptionValidator;
+import shared.encryption.codec.Decoder;
 import shared.keys.schemes.AsymmetricEncryptionScheme;
 import shared.keys.schemes.DiffieHellman;
 import shared.logging.Logger;
@@ -16,7 +13,6 @@ import shared.message.communication.SignedMessage;
 import shared.message.handshake.ClientHello;
 import shared.message.handshake.ServerError;
 import shared.message.handshake.ServerHello;
-import shared.signing.MessageValidator;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -27,7 +23,10 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.net.Socket;
-import java.security.*;
+import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.security.SignatureException;
 import java.util.HashSet;
 import java.util.Objects;
 
@@ -36,7 +35,6 @@ public class ClientHandler implements Runnable {
     private final ObjectInputStream objectInputStream;
     private final ObjectOutputStream objectOutputStream;
     private String name;
-    private PrivateKey RSAPrivateKey;
 
     /**
      * Constructs a new {@link ClientHandler}.
@@ -61,39 +59,25 @@ public class ClientHandler implements Runnable {
 
                 if (message instanceof ClientHello clientHello) {
                     this.handleClientHello(clientHello);
-                } else {
-                    if (message instanceof SignedMessage signedMessage) {
-                        ClientSpec clientSpec = Server.clients.get(this.name);
-                        boolean validSignature = MessageValidator.validateMessage(clientSpec.getHashingAlgorithm(), clientSpec.getPublicSigningKey(), signedMessage);
-                        if (!validSignature) {
-                            continue;
-                        }
-
-                        ClientMessage clientMessage = null;
-                        switch (clientSpec.getEncryptionAlgorithmType()) {
-                            case SYMMETRIC -> clientMessage = (ClientMessage) MessageDecoder.decodeMessage(signedMessage, clientSpec.getPrivateSharedDHKey(), clientSpec.getKeySize(), clientSpec.getEncryptionAlgorithm());
-                            case ASYMMETRIC -> clientMessage = (ClientMessage) MessageDecoder.decodeMessage(signedMessage, this.RSAPrivateKey, clientSpec.getEncryptionAlgorithm());
-                            default -> throw new IllegalStateException("Unexpected value: " + clientSpec.getEncryptionAlgorithmType());
-                        }
-                        Logger.info(this.name + " sent: \"" + clientMessage.getMessage() + "\" to " + (clientMessage.getUsers().isEmpty() ? "everyone" : "the following users: " + clientMessage.getUsers()));
-                        this.handleClientMessage(clientMessage);
-                    }
+                } else if (message instanceof ClientMessage clientMessage) {
+                    this.handleClientMessage(clientMessage);
                 }
-            } catch (IOException | ClassNotFoundException | NoSuchAlgorithmException | InvalidKeyException e) {
-                break;
-            } catch (SignatureException | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException e) {
+            } catch (IOException | ClassNotFoundException | NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException | SignatureException e) {
                 e.printStackTrace();
+                break;
             }
         }
 
         try {
+            Server.clients.remove(this.name);
             String leftMessage = Messages.userLeft(this.name);
             ServerUserStatusMessage serverUserStatusMessage = new ServerUserStatusMessage(leftMessage);
             this.broadcast(serverUserStatusMessage);
             Logger.info(leftMessage);
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException ex) {
+            ex.printStackTrace();
         }
+
     }
 
     /**
@@ -111,60 +95,51 @@ public class ClientHandler implements Runnable {
     }
 
     /**
-     * Handles a {@link ClientMessage}.
+     * Handles a {@link SignedMessage}.
      *
-     * @param clientMessage message to handle
      * @throws IOException
      */
-    private void handleClientMessage(ClientMessage clientMessage) throws IOException {
-        ServerMessage serverMessage = new ServerMessage(this.name, clientMessage.getMessage());
-        HashSet<String> users;
-        users = new HashSet<>(clientMessage.getUsers());
+    private void handleClientMessage(ClientMessage clientMessage) throws IOException, NoSuchAlgorithmException,
+            SignatureException, InvalidKeyException, NoSuchPaddingException, IllegalBlockSizeException,
+            BadPaddingException {
+        ClientSpec clientSpec = Server.clients.get(this.name);
 
-        if (users.isEmpty()) {
-            users = new HashSet<>(Server.clients.keySet());
+        // Decode the content of the message
+        byte[] decodedContent = Decoder.decodeMessage(clientMessage.getMessage(), clientSpec);
+        boolean validSignature = Decoder.validateSignature(decodedContent, clientSpec.getHashingAlgorithm(),
+                                                           clientSpec.getPublicSigningKey(),
+                                                           clientMessage.getSignature());
+
+        // Verify if hashes match
+        if (!validSignature) {
+            Logger.error("Hashes do not match");
+            return;
         }
-        for (String user : users) {
-            // Outra opção seria filtrar o HashSet da condição de cima
-            if (!Objects.equals(user, this.name)) {
-                try {
-                    ClientSpec clientSpec = Server.clients.get(user);
 
-                    EncryptionValidator encryptionValidator = new EncryptionValidator();
-                    EncryptionAlgorithmType algorithmType = encryptionValidator.getValidators()
-                            .get(clientSpec.getEncryptionAlgorithm())
-                            .getType();
+        // List of recipients
+        HashSet<String> recipients = new HashSet<>(clientMessage.getUsers());
 
-                    SignedMessage signedMessage = null;
-                    // Encrypt message
-                    switch (algorithmType) {
-                        case SYMMETRIC -> signedMessage = MessageEncoder.encodeMessage(serverMessage, clientSpec.getEncryptionAlgorithm(), clientSpec.getPrivateSharedDHKey(), clientSpec.getKeySize(), clientSpec.getHashingAlgorithm(), Server.signingKeys.getPrivate());
-                        case ASYMMETRIC -> signedMessage = MessageEncoder.encodeMessage(serverMessage, clientSpec.getEncryptionAlgorithm(), Server.RSAKeys.get(clientSpec.getKeySize()).getPrivate(), clientSpec.getHashingAlgorithm(), Server.signingKeys.getPrivate());
-                        default -> throw new IllegalStateException("Unexpected value: " + algorithmType);
-                    }
-                    this.sendMessage(clientSpec.getObjectOutputStream(), signedMessage);
-                } catch (NullPointerException | NoSuchPaddingException | NoSuchAlgorithmException | IllegalBlockSizeException | InvalidKeyException e) {
-                    Logger.error("User does not exist");
-                } catch (SignatureException e) {
-                    e.printStackTrace();
-                } catch (BadPaddingException e) {
-                    e.printStackTrace();
-                }
+        String incomingMessageLog = String.format("%s sent `%s` to [%s]", this.name, new String(decodedContent),
+                                                  recipients.isEmpty() ? "everyone" : String.join(",", recipients));
+        Logger.info(incomingMessageLog);
+
+        if (recipients.isEmpty()) {
+            recipients = new HashSet<>(Server.clients.keySet());
+        }
+        recipients.stream().filter(user -> !user.equals(this.name)).forEach(user -> {
+            try {
+                ClientSpec userSpec = Server.clients.get(user);
+                ServerMessage serverMessage = new ServerMessage(this.name, new String(decodedContent), userSpec);
+                this.sendMessage(userSpec.getObjectOutputStream(), serverMessage);
+            } catch (NullPointerException e) {
+                String error = String.format("User %s does not exist.", user);
+                Logger.error(error);
+            } catch (BadPaddingException | IOException | NoSuchPaddingException | NoSuchAlgorithmException | IllegalBlockSizeException | InvalidKeyException | SignatureException e) {
+                e.printStackTrace();
             }
-        }
+        });
     }
 
-    /**
-     * Sends a message through the socket.
-     *
-     * @param objectOutputStream {@link ObjectOutputStream} to send the message through
-     * @param message            {@link shared.message.communication.Message} to be sent
-     * @throws IOException
-     */
-    private void sendMessage(ObjectOutputStream objectOutputStream, Serializable message) throws IOException {
-        objectOutputStream.writeObject(message);
-        objectOutputStream.flush();
-    }
 
     /**
      * Handles a {@link ClientHello} message.
@@ -179,41 +154,77 @@ public class ClientHandler implements Runnable {
             this.sendMessage(this.objectOutputStream, serverError);
         } else {
             this.name = message.getName();
+            // Generate Diffie-Hellman keys for symmetric encryption
             BigInteger privateDHKey = DiffieHellman.generatePrivateKey();
             BigInteger publicDHKey = DiffieHellman.generatePublicKey(privateDHKey);
+            ClientSpec.Builder clientSpecBuilder = new ClientSpec.Builder().withSocket(this.socket)
+                                                                           .withEncryptionAlgorithm(
+                                                                                   message.getEncryptionAlgorithm())
+                                                                           .withKeySize(message.getKeySize())
+                                                                           .withHashingAlgorithm(
+                                                                                   message.getHashingAlgorithm())
+                                                                           .withEncryptionAlgorithmType(
+                                                                                   message.getEncryptionAlgorithmType())
+                                                                           .withObjectInputStream(
+                                                                                   this.objectInputStream)
+                                                                           .withPublicSigningKey(
+                                                                                   message.getPublicSigningKey())
+                                                                           .withObjectOutputStream(
+                                                                                   this.objectOutputStream)
+                                                                           .withServerSigningKeys(
+                                                                                   AsymmetricEncryptionScheme.generateKeys(
+                                                                                           4096));
 
-            ClientSpec.Builder clientSpecBuilder = new ClientSpec.Builder().withSocket(this.socket).withEncryptionAlgorithm(message.getEncryptionAlgorithm()).withKeySize(message.getKeySize()).withHashingAlgorithm(message.getHashingAlgorithm()).withEncryptionAlgorithmType(message.getEncryptionAlgorithmType()).withPublicSigningKey(message.getPublicSigningKey()).withObjectInputStream(this.objectInputStream).withObjectOutputStream(this.objectOutputStream);
+            switch (message.getEncryptionAlgorithmType()) {
+                case SYMMETRIC -> {
+                    // Compute a shared private key from the incoming message's public DH key and the generated
+                    // private key
+                    BigInteger sharedPrivateKey = DiffieHellman.computePrivateKey(message.getPublicDHKey(),
+                                                                                  privateDHKey);
+                    clientSpecBuilder.withSymmetricEncryptionKey(sharedPrivateKey);
+                }
+                case ASYMMETRIC -> {
+                    // Assign the client's public RSA key to the ClientSpec object
+                    clientSpecBuilder.withPublicRSAKey(message.getPublicRSAKey());
 
-            if (message.getEncryptionAlgorithmType() == EncryptionAlgorithmType.ASYMMETRIC) {
-                clientSpecBuilder.withPublicRSAKey(message.getPublicRSAKey());
+                    // The server must now generate a new key pair to communicate with this client.
+                    Integer keySize = message.getKeySize();
+                    KeyPair serverRSAKeys = AsymmetricEncryptionScheme.generateKeys(keySize);
+                    clientSpecBuilder.withServerRSAKeys(serverRSAKeys);
+                }
             }
-
-            BigInteger sharedPrivateKey = DiffieHellman.computePrivateKey(message.getPublicDHKey(), privateDHKey);
-            clientSpecBuilder.withPrivateSharedDHKey(sharedPrivateKey);
-
             ClientSpec clientSpec = clientSpecBuilder.build();
-
             Server.clients.put(message.getName(), clientSpec);
-            ServerHello.Builder serverHelloBuilder = new ServerHello.Builder();
-            serverHelloBuilder.withPublicSigningKey(Server.signingKeys.getPublic());
-            if (message.getEncryptionAlgorithmType() == EncryptionAlgorithmType.ASYMMETRIC) {
-                Integer clientRSAKeySize = message.getKeySize();
-                PublicKey rsaPublicKeyWithSupportedSize = Server.RSAKeys.get(clientRSAKeySize).getPublic();
-                serverHelloBuilder.withPublicRSAKey(rsaPublicKeyWithSupportedSize);
-                PrivateKey rsaPrivateKeyWithSupportedSize = Server.RSAKeys.get(clientRSAKeySize).getPrivate();
-                this.RSAPrivateKey = rsaPrivateKeyWithSupportedSize;
-                byte[] encryptedRSAKey = AsymmetricEncryptionScheme.encrypt(publicDHKey.toByteArray(), rsaPrivateKeyWithSupportedSize);
-                serverHelloBuilder.withPublicDHKey(new BigInteger(Objects.requireNonNull(encryptedRSAKey)));
-            } else {
-                serverHelloBuilder.withPublicDHKey(publicDHKey);
+
+            ServerHello.Builder serverHelloBuilder = new ServerHello.Builder()
+                    .withPublicSigningKey(clientSpec.getServerSigningKeys().getPublic());
+
+            switch (message.getEncryptionAlgorithmType()) {
+                case SYMMETRIC -> // Send the generated public DH key to the client so it can compute the shared key.
+                        serverHelloBuilder.withPublicDHKey(publicDHKey);
+                case ASYMMETRIC -> // Send the server's public RSA key
+                        serverHelloBuilder.withPublicRSAKey(clientSpec.getServerRSAKeys().getPublic());
             }
             ServerHello serverHello = serverHelloBuilder.build();
             this.sendMessage(this.objectOutputStream, serverHello);
 
+            // Broadcast the join message to every user
             String joinMessage = Messages.userJoined(this.name);
             ServerUserStatusMessage serverUserStatusMessage = new ServerUserStatusMessage(joinMessage);
             this.broadcast(serverUserStatusMessage);
             Logger.info(joinMessage);
         }
+    }
+
+    /**
+     * Sends a message through the socket.
+     *
+     * @param objectOutputStream {@link ObjectOutputStream} to send the message through
+     * @param message            {@link shared.message.communication.Message} to be sent
+     * @throws IOException
+     */
+    private void sendMessage(ObjectOutputStream objectOutputStream, Serializable message) throws IOException {
+        objectOutputStream.writeObject(message);
+        objectOutputStream.flush();
     }
 }

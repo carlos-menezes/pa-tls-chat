@@ -3,7 +3,6 @@ package client.protocol;
 import client.Client;
 import picocli.CommandLine;
 import shared.encryption.validator.EncryptionAlgorithmType;
-import shared.keys.schemes.AsymmetricEncryptionScheme;
 import shared.keys.schemes.DiffieHellman;
 import shared.logging.Logger;
 import shared.message.handshake.ClientHello;
@@ -16,7 +15,6 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.security.PublicKey;
-import java.util.Objects;
 import java.util.concurrent.Callable;
 
 /**
@@ -48,43 +46,42 @@ public class Handshake implements Callable<Integer> {
      */
     @Override
     public Integer call() throws IOException, ClassNotFoundException {
-        // Generate DH keys
+        // Generate Diffie-Hellman keys for symmetric encryption
         BigInteger privateDHKey = DiffieHellman.generatePrivateKey();
         BigInteger publicDHKey = DiffieHellman.generatePublicKey(privateDHKey);
 
         // 1. Create and send `CLIENT_HELLO`
         ClientHello clientHello = new ClientHello(this.client);
-        clientHello.setPublicDHKey(publicDHKey);
+        if (this.client.getEncryptionAlgorithmType() == EncryptionAlgorithmType.SYMMETRIC) {
+            clientHello.setPublicDHKey(publicDHKey);
+        }
         this.sendMessage(clientHello);
 
         // 2. Receive `SERVER_HELLO` or `SERVER_ERROR`
         Object serverReply = this.receiveMessage();
         if (serverReply instanceof ServerError) {
-            // TODO: appropriate logging
             Logger.error("Username already in use.");
             return CommandLine.ExitCode.SOFTWARE;
         }
 
         // At this phase, no other types of message can be sent by the server,
         // so treat the message as `SERVER_HELLO`.
-        BigInteger privateSharedDHKey;
         ServerHello serverHello = (ServerHello) serverReply;
-        BigInteger serverPublicDHKey = serverHello.getPublicDHKey();
         PublicKey serverSigningKey = serverHello.getPublicSigningKey();
 
         this.client.setServerSigningKey(serverSigningKey);
-
-        if (this.client.getEncryptionAlgorithmType() == EncryptionAlgorithmType.ASYMMETRIC) {
-            this.client.setServerRSAKey(serverHello.getPublicRSAKey());
-            byte[] decryptedServerPublicDHKey = AsymmetricEncryptionScheme.decrypt(serverPublicDHKey.toByteArray(),
-                                                                                   this.client.getServerRSAKey());
-            privateSharedDHKey = DiffieHellman.computePrivateKey(
-                    new BigInteger(Objects.requireNonNull(decryptedServerPublicDHKey)), privateDHKey);
-        } else {
-            privateSharedDHKey = DiffieHellman.computePrivateKey(serverPublicDHKey, privateDHKey);
+        switch (this.client.getEncryptionAlgorithmType()) {
+            case SYMMETRIC -> {
+                // The computed, shared Diffie-Hellman key is used to derive a key for the chosen symmetric algorithm.
+                BigInteger serverPublicDHKey = serverHello.getPublicDHKey();
+                BigInteger privateSharedDHKey = DiffieHellman.computePrivateKey(serverPublicDHKey, privateDHKey);
+                this.client.setSymmetricEncryptionKey(privateSharedDHKey);
+            }
+            case ASYMMETRIC -> {
+                PublicKey serverPublicRSAKey = serverHello.getPublicRSAKey();
+                this.client.setServerRSAKey(serverPublicRSAKey);
+            }
         }
-        this.client.setEncryptionKey(privateSharedDHKey);
-
         return CommandLine.ExitCode.OK;
     }
 

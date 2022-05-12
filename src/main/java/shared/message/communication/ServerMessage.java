@@ -1,5 +1,16 @@
 package shared.message.communication;
 
+import server.client.ClientSpec;
+import shared.encryption.codec.Enconder;
+import shared.hashing.codec.HashingEncoder;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SignatureException;
+
 /**
  * The <code>ServerMessage</code> class represents a message sent from the server to the client.
  * Extends {@link Message}.
@@ -15,9 +26,16 @@ public class ServerMessage extends Message {
      * @param sender The message sender.
      * @param message The message to be sent.
      */
-    public ServerMessage(String sender, String message) {
-        super(message);
+    public ServerMessage(String sender, String message, ClientSpec clientSpec) throws NoSuchPaddingException,
+            IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException,
+            SignatureException {
         this.sender = sender;
+
+        byte[] encodedMessage = Enconder.encodeMessage(message, clientSpec);
+        this.setMessage(encodedMessage);
+
+        byte[] encodedHash = Enconder.createSignature(message, clientSpec.getHashingAlgorithm(), clientSpec.getServerSigningKeys().getPrivate());
+        this.setSignature(encodedHash);
     }
 
     /**

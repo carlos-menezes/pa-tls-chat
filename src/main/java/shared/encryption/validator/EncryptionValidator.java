@@ -48,7 +48,7 @@ public class EncryptionValidator {
     /**
      * Gets the validators.
      *
-     * @return value of {{@link #validators}}
+     * @return value of {@link #validators}
      */
     public HashMap<String, Validatable> getValidators() {
         return validators;
