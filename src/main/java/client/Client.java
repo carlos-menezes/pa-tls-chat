@@ -9,7 +9,6 @@ import shared.encryption.validator.EncryptionAlgorithmType;
 import shared.encryption.validator.EncryptionValidator;
 import shared.encryption.validator.exceptions.InvalidEncryptionAlgorithmException;
 import shared.encryption.validator.exceptions.InvalidKeySizeException;
-import shared.hashing.codec.HashingEncoder;
 import shared.hashing.validator.HashingValidator;
 import shared.hashing.validator.exceptions.InvalidHashingAlgorithmException;
 import shared.hashing.validator.exceptions.UnsupportedHashingAlgorithmException;
@@ -292,5 +291,46 @@ public class Client implements Callable<Integer> {
 
     public void setSigningKeys(KeyPair signingKeys) {
         this.signingKeys = signingKeys;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setEncryptionAlgorithmType(EncryptionAlgorithmType encryptionAlgorithmType) {
+        this.encryptionAlgorithmType = encryptionAlgorithmType;
+    }
+
+    public void setEncryptionAlgorithm(String encryptionAlgorithm) {
+        this.encryptionAlgorithm = encryptionAlgorithm;
+    }
+
+    public void setKeySize(Integer keySize) {
+        this.keySize = keySize;
+    }
+
+    public void setHashingAlgorithm(String hashingAlgorithm) {
+        this.hashingAlgorithm = hashingAlgorithm;
+    }
+
+    @Override
+    public String toString() {
+        return "Client{" +
+                "encryptionAlgorithm='" + encryptionAlgorithm + '\'' +
+                ", keySize=" + keySize +
+                ", hashingAlgorithm='" + hashingAlgorithm + '\'' +
+                ", name='" + name + '\'' +
+                ", host='" + host + '\'' +
+                ", port=" + port +
+                ", socket=" + socket +
+                ", encryptionAlgorithmType=" + encryptionAlgorithmType +
+                ", symmetricEncryptionKey=" + symmetricEncryptionKey +
+                ", signingKeys=" + signingKeys +
+                ", serverSigningKey=" + serverSigningKey +
+                ", RSAKeys=" + RSAKeys +
+                ", serverRSAKey=" + serverRSAKey +
+                ", objectOutputStream=" + objectOutputStream +
+                ", objectInputStream=" + objectInputStream +
+                '}';
     }
 }
