@@ -196,7 +196,7 @@ public class ClientHandler implements Runnable {
                     clientSpec.getServerSigningKeys().getPublic());
 
             switch (message.getEncryptionAlgorithmType()) {
-                case SYMMETRIC -> // Send the generated public DH key to the client so it can compute the shared key.
+                case SYMMETRIC -> // Send the generated public DH key to the client, so it can compute the shared key.
                         serverHelloBuilder.withPublicDiffieHellmanKey(publicDiffieHellmanKey);
                 case ASYMMETRIC -> // Send the server's public RSA key
                         serverHelloBuilder.withPublicRSAKey(clientSpec.getServerRSAKeys().getPublic());

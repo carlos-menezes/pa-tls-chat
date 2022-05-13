@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Server implements Callable<Integer> {
     public static ConcurrentHashMap<String, ClientSpec> clients;
 
-    @CommandLine.Option(names = {"--port"}, description = "Server to run the port on", required = true)
+    @CommandLine.Option(names = {"-p", "--port"}, description = "Server to run the port on", required = true)
     private Integer port;
 
     @Override

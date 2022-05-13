@@ -46,13 +46,16 @@ public class Handshake implements Callable<Integer> {
      */
     @Override
     public Integer call() throws IOException, ClassNotFoundException {
-        // Generate Diffie-Hellman keys for symmetric encryption
-        BigInteger privateDHKey = DiffieHellman.generatePrivateKey();
-        BigInteger publicDHKey = DiffieHellman.generatePublicKey(privateDHKey);
+
+        BigInteger privateDHKey = null;
+        BigInteger publicDHKey;
 
         // 1. Create and send `CLIENT_HELLO`
         ClientHello clientHello = new ClientHello(this.client);
         if (this.client.getEncryptionAlgorithmType() == EncryptionAlgorithmType.SYMMETRIC) {
+            // Generate Diffie-Hellman keys for symmetric encryption
+            privateDHKey = DiffieHellman.generatePrivateKey();
+            publicDHKey = DiffieHellman.generatePublicKey(privateDHKey);
             clientHello.setPublicDiffieHellmanKey(publicDHKey);
         }
         this.sendMessage(clientHello);

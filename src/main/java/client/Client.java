@@ -41,23 +41,23 @@ public class Client implements Callable<Integer> {
      * Commands line options
      */
     @CommandLine.Option(names = {"-e",
-                                 "--encryption-algorithms"}, description = "Encryption algorithm", required = true)
+            "--encryption-algorithms"}, description = "Encryption algorithm", required = true)
     @SuppressWarnings("FieldMayBeFinal")
     private String encryptionAlgorithm = "";
     @CommandLine.Option(names = {"-k", "--key-size"}, description = "Key size", required = true)
     @SuppressWarnings("FieldMayBeFinal")
     private Integer keySize = 0;
     @CommandLine.Option(names = {"-m",
-                                 "--hashing-algorithms"}, description = "Hashing algorithm", defaultValue =
+            "--hashing-algorithm"}, description = "Hashing algorithm", defaultValue =
             "SHA256withRSA")
     @SuppressWarnings("FieldMayBeFinal")
     private String hashingAlgorithm = "";
     @CommandLine.Option(names = {"-n", "--name"}, description = "Client name")
     @SuppressWarnings("FieldMayBeFinal")
     private String name = "";
-    @CommandLine.Option(names = {"--host"}, description = "Server hostname", required = true)
+    @CommandLine.Option(names = {"-h", "--host"}, description = "Server hostname", required = true)
     private String host;
-    @CommandLine.Option(names = {"--port"}, description = "Server port", required = true)
+    @CommandLine.Option(names = {"-p", "--port"}, description = "Server port", required = true)
 
     private int port;
     private Socket socket;
@@ -148,8 +148,8 @@ public class Client implements Callable<Integer> {
                     if (message instanceof ServerMessage serverMessage) {
                         byte[] decodedContent = Decoder.decodeMessage(serverMessage.getMessage(), this);
                         boolean validSignature = Decoder.validateSignature(decodedContent, this.getHashingAlgorithm(),
-                                                                           this.getServerSigningKey(),
-                                                                           serverMessage.getSignature());
+                                this.getServerSigningKey(),
+                                serverMessage.getSignature());
 
                         if (!validSignature) {
                             Logger.error("Signature does not match do not match");
