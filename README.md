@@ -1,3 +1,5 @@
+![image](https://user-images.githubusercontent.com/36506580/168392266-fb109aeb-5802-420b-99c3-14b430ea5ee0.png)
+
 ## *Handshake*
 
 - (**CLIENTE**) O processo de *handshake* começa pelo `CLIENT_HELLO`. Consiste no envio das informações do cliente (definidas na classe `ClientHello`) para o servidor. 
