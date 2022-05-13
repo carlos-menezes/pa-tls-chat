@@ -36,4 +36,14 @@ public class Server implements Callable<Integer> {
 
         return null;
     }
+
+
+    /**
+     * Gets port.
+     *
+     * @return the port
+     */
+    public Integer getPort() {
+        return port;
+    }
 }
