@@ -20,8 +20,9 @@ public class AsymmetricEncryptionScheme {
 
     /**
      * Encrypt a byte array.
+     *
      * @param content content
-     * @param key key
+     * @param key     key
      * @return encrypted byte array
      */
     public static byte[] encrypt(byte[] content, Key key) {
@@ -32,13 +33,14 @@ public class AsymmetricEncryptionScheme {
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
             e.printStackTrace();
         }
-        return  null;
+        return null;
     }
 
     /**
      * Decrypt a byte array.
+     *
      * @param content content
-     * @param key key
+     * @param key     key
      * @return decrypted by array
      */
     public static byte[] decrypt(byte[] content, Key key) {
