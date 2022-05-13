@@ -3,7 +3,7 @@ package shared.message.communication;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.*;
 import server.client.ClientSpec;
-import shared.encryption.codec.Enconder;
+import shared.encryption.codec.Encoder;
 import shared.encryption.validator.EncryptionAlgorithmType;
 import shared.keys.schemes.AsymmetricEncryptionScheme;
 import shared.keys.schemes.DiffieHellman;
@@ -32,7 +32,7 @@ public class ServerMessageTest {
                 .withEncryptionAlgorithmType(EncryptionAlgorithmType.SYMMETRIC)
                 .withEncryptionAlgorithm("AES")
                 .withKeySize(256)
-                .withHashingAlgorithm("MD5")
+                .withHashingAlgorithm("MD5withRSA")
                 .withSymmetricEncryptionKey(privateSharedDHKey)
                 .withPublicSigningKey(clientSigningKeys.getPublic())
                 .withServerSigningKeys(serverSigningKeys)
@@ -45,7 +45,7 @@ public class ServerMessageTest {
             BadPaddingException, SignatureException, InvalidKeyException {
         ServerMessage serverMessage = new ServerMessage(this.sender, this.message, clientSpec);
         byte[] message = serverMessage.getMessage();
-        byte[] expected = Enconder.encodeMessage(this.message, this.clientSpec);
+        byte[] expected = Encoder.encodeMessage(this.message, this.clientSpec);
         assertArrayEquals(message, expected);
     }
 
@@ -62,7 +62,7 @@ public class ServerMessageTest {
     void testGetSignature() throws NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException,
             BadPaddingException, SignatureException, InvalidKeyException {
         ServerMessage serverMessage = new ServerMessage(this.sender, this.message, clientSpec);
-        byte[] expected = Enconder.createSignature(this.message, this.clientSpec.getHashingAlgorithm(), this.clientSpec.getServerSigningKeys().getPrivate());
+        byte[] expected = Encoder.createSignature(this.message, this.clientSpec.getHashingAlgorithm(), this.clientSpec.getServerSigningKeys().getPrivate());
         assertArrayEquals(serverMessage.getSignature(), expected);
     }
 }

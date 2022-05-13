@@ -21,7 +21,7 @@ class LoggerTest {
     }
 
     @Test
-    void TestWrite() {
+    void TestInfo() {
         Logger.info("TEST INFO");
         final Matcher matcher = pattern.matcher(outputStreamCaptor.toString());
         assertTrue(matcher.matches());
@@ -29,7 +29,14 @@ class LoggerTest {
 
     @Test
     void TestError() {
-        Logger.info("TEST ERROR");
+        Logger.error("TEST ERROR");
+        final Matcher matcher = pattern.matcher(outputStreamCaptor.toString());
+        assertTrue(matcher.matches());
+    }
+
+    @Test
+    void TestMessage() {
+        Logger.message("pa-user", "Hello World");
         final Matcher matcher = pattern.matcher(outputStreamCaptor.toString());
         assertTrue(matcher.matches());
     }

@@ -12,14 +12,10 @@ class HashingValidatorTest {
     @Test
     void TestValidAlgorithms() {
         assertDoesNotThrow(() -> {
-            this.validator.validate("SHA-256");
-            this.validator.validate("SHA-512");
-            this.validator.validate("MD5");
+            this.validator.validate("SHA256withRSA");
+            this.validator.validate("SHA512withRSA");
+            this.validator.validate("MD5withRSA");
         });
-
-        if (HashingValidator.isHashingAlgorithmSupported("MD4")) {
-            assertDoesNotThrow(() -> this.validator.validate("MD4"));
-        }
     }
 
     @Test

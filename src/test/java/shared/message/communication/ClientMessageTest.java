@@ -5,7 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
-import shared.encryption.codec.Enconder;
+import shared.encryption.codec.Encoder;
 import shared.encryption.validator.EncryptionAlgorithmType;
 import shared.keys.schemes.AsymmetricEncryptionScheme;
 import shared.keys.schemes.DiffieHellman;
@@ -33,7 +33,7 @@ public class ClientMessageTest {
 
     @BeforeEach
     void setUp() throws NoSuchAlgorithmException {
-        String[] args = "-e AES -k 256 -m SHA-256 -n pa-user --host localhost --port 1337".split(" ");
+        String[] args = "-e AES -k 256 -m SHA256withRSA -n pa-user --host localhost --port 1337".split(" ");
         this.client = new Client();
         new CommandLine(this.client).parseArgs(args);
         this.client.setEncryptionAlgorithmType(EncryptionAlgorithmType.SYMMETRIC);
@@ -51,7 +51,7 @@ public class ClientMessageTest {
             BadPaddingException, SignatureException, InvalidKeyException {
         ClientMessage clientMessage = new ClientMessage(messageMultipleUsers, this.client);
         byte[] message = clientMessage.getMessage();
-        byte[] expected = Enconder.encodeMessage("Hello World", this.client);
+        byte[] expected = Encoder.encodeMessage("Hello World", this.client);
         assertArrayEquals(message, expected);
     }
 
@@ -91,8 +91,8 @@ public class ClientMessageTest {
     void testGetSignature() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException,
             BadPaddingException, SignatureException, InvalidKeyException {
         ClientMessage clientMessage = new ClientMessage(messageBroadcast, client);
-        byte[] expected = Enconder.createSignature(messageBroadcast, this.client.getHashingAlgorithm(),
-                                                   this.client.getSigningKeys()
+        byte[] expected = Encoder.createSignature(messageBroadcast, this.client.getHashingAlgorithm(),
+                                                  this.client.getSigningKeys()
                                                               .getPrivate());
         assertArrayEquals(clientMessage.getSignature(), expected);
     }
