@@ -1,8 +1,7 @@
 package shared.message.communication;
 
 import server.client.ClientSpec;
-import shared.encryption.codec.Enconder;
-import shared.hashing.codec.HashingEncoder;
+import shared.encryption.codec.Encoder;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -23,7 +22,7 @@ public class ServerMessage extends Message {
      * Creates a new <code>ServerMessage</code> object by specifying the message sender,
      * the hash of the message and the message itself.
      *
-     * @param sender The message sender.
+     * @param sender  The message sender.
      * @param message The message to be sent.
      */
     public ServerMessage(String sender, String message, ClientSpec clientSpec) throws NoSuchPaddingException,
@@ -31,11 +30,12 @@ public class ServerMessage extends Message {
             SignatureException {
         this.sender = sender;
 
-        byte[] encodedMessage = Enconder.encodeMessage(message, clientSpec);
+        byte[] encodedMessage = Encoder.encodeMessage(message, clientSpec);
         this.setMessage(encodedMessage);
 
-        byte[] encodedHash = Enconder.createSignature(message, clientSpec.getHashingAlgorithm(), clientSpec.getServerSigningKeys().getPrivate());
-        this.setSignature(encodedHash);
+        byte[] signature = Encoder.createSignature(message, clientSpec.getHashingAlgorithm(),
+                                                   clientSpec.getServerSigningKeys().getPrivate());
+        this.setSignature(signature);
     }
 
     /**

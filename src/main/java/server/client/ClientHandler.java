@@ -157,22 +157,19 @@ public class ClientHandler implements Runnable {
             BigInteger privateDiffieHellmanKey = DiffieHellman.generatePrivateKey();
             BigInteger publicDiffieHellmanKey = DiffieHellman.generatePublicKey(privateDiffieHellmanKey);
             ClientSpec.Builder clientSpecBuilder = new ClientSpec.Builder().withSocket(this.socket)
-                                                                           .withEncryptionAlgorithm(
-                                                                                   message.getEncryptionAlgorithm())
-                                                                           .withKeySize(message.getKeySize())
-                                                                           .withHashingAlgorithm(
-                                                                                   message.getHashingAlgorithm())
                                                                            .withEncryptionAlgorithmType(
                                                                                    message.getEncryptionAlgorithmType())
-                                                                           .withObjectInputStream(
-                                                                                   this.objectInputStream)
-                                                                           .withPublicSigningKey(
-                                                                                   message.getPublicSigningKey())
-                                                                           .withObjectOutputStream(
-                                                                                   this.objectOutputStream)
+                                                                           .withEncryptionAlgorithm(
+                                                                                   message.getEncryptionAlgorithm())
                                                                            .withServerSigningKeys(
                                                                                    AsymmetricEncryptionScheme.generateKeys(
-                                                                                           4096));
+                                                                                           4096)).withPublicSigningKey(
+                            message.getPublicSigningKey()).withHashingAlgorithm(message.getHashingAlgorithm())
+                                                                           .withKeySize(message.getKeySize())
+                                                                           .withObjectInputStream(
+                                                                                   this.objectInputStream)
+                                                                           .withObjectOutputStream(
+                                                                                   this.objectOutputStream);
 
             switch (message.getEncryptionAlgorithmType()) {
                 case SYMMETRIC -> {
@@ -195,8 +192,8 @@ public class ClientHandler implements Runnable {
             ClientSpec clientSpec = clientSpecBuilder.build();
             Server.clients.put(message.getName(), clientSpec);
 
-            ServerHello.Builder serverHelloBuilder = new ServerHello.Builder()
-                    .withPublicSigningKey(clientSpec.getServerSigningKeys().getPublic());
+            ServerHello.Builder serverHelloBuilder = new ServerHello.Builder().withPublicSigningKey(
+                    clientSpec.getServerSigningKeys().getPublic());
 
             switch (message.getEncryptionAlgorithmType()) {
                 case SYMMETRIC -> // Send the generated public DH key to the client so it can compute the shared key.

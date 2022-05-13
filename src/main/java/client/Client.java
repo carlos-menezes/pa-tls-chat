@@ -87,9 +87,7 @@ public class Client implements Callable<Integer> {
             encryptionValidator.validate(this.encryptionAlgorithm, this.keySize);
 
             this.setSigningKeys(AsymmetricEncryptionScheme.generateKeys(4096));
-            this.encryptionAlgorithmType = encryptionValidator.getValidators()
-                                                              .get(this.encryptionAlgorithm)
-                                                              .getType();
+            this.encryptionAlgorithmType = encryptionValidator.getValidators().get(this.encryptionAlgorithm).getType();
             if (this.encryptionAlgorithmType == EncryptionAlgorithmType.ASYMMETRIC) {
                 this.RSAKeys = AsymmetricEncryptionScheme.generateKeys(this.keySize);
             }
@@ -149,13 +147,13 @@ public class Client implements Callable<Integer> {
                     Object message = this.objectInputStream.readObject();
                     if (message instanceof ServerMessage serverMessage) {
                         byte[] decodedContent = Decoder.decodeMessage(serverMessage.getMessage(), this);
-                        boolean validateSignature = Decoder.validateSignature(decodedContent, this.getHashingAlgorithm(),
-                                                                      this.getServerSigningKey(),
-                                                                      serverMessage.getSignature());
+                        boolean validSignature = Decoder.validateSignature(decodedContent, this.getHashingAlgorithm(),
+                                                                           this.getServerSigningKey(),
+                                                                           serverMessage.getSignature());
 
-                        // Verify if hashes match
-                        if (!validateSignature) {
-                            Logger.error("Hashes do not match");
+                        if (!validSignature) {
+                            Logger.error("Signature does not match do not match");
+                            return;
                         }
 
                         Logger.message(serverMessage.getSender(), new String(decodedContent));
@@ -180,8 +178,8 @@ public class Client implements Callable<Integer> {
     /**
      * Method that sends messages to the server
      */
-    private void writeMessages() throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException,
-            IllegalBlockSizeException, BadPaddingException, SignatureException {
+    private void writeMessages() throws NoSuchAlgorithmException, InvalidKeyException, SignatureException,
+            IllegalBlockSizeException, NoSuchPaddingException, BadPaddingException {
         while (this.socket.isConnected()) {
             this.displayInputPrompt();
             Scanner input = new Scanner(System.in);
@@ -236,12 +234,30 @@ public class Client implements Callable<Integer> {
     }
 
     /**
+     * Sets encryption algorithm.
+     *
+     * @param encryptionAlgorithm the encryption algorithm
+     */
+    public void setEncryptionAlgorithm(String encryptionAlgorithm) {
+        this.encryptionAlgorithm = encryptionAlgorithm;
+    }
+
+    /**
      * Method that returns the clients encryption key size
      *
      * @return Clients encryption key size
      */
     public Integer getKeySize() {
         return keySize;
+    }
+
+    /**
+     * Sets key size.
+     *
+     * @param keySize the key size
+     */
+    public void setKeySize(Integer keySize) {
+        this.keySize = keySize;
     }
 
     /**
@@ -254,12 +270,30 @@ public class Client implements Callable<Integer> {
     }
 
     /**
+     * Sets hashing algorithm.
+     *
+     * @param hashingAlgorithm the hashing algorithm
+     */
+    public void setHashingAlgorithm(String hashingAlgorithm) {
+        this.hashingAlgorithm = hashingAlgorithm;
+    }
+
+    /**
      * Method that returns the clients name
      *
      * @return Clients name
      */
     public String getName() {
         return name;
+    }
+
+    /**
+     * Sets name.
+     *
+     * @param name the name
+     */
+    public void setName(String name) {
+        this.name = name;
     }
 
     /**
@@ -278,6 +312,15 @@ public class Client implements Callable<Integer> {
      */
     public EncryptionAlgorithmType getEncryptionAlgorithmType() {
         return encryptionAlgorithmType;
+    }
+
+    /**
+     * Sets encryption algorithm type.
+     *
+     * @param encryptionAlgorithmType the encryption algorithm type
+     */
+    public void setEncryptionAlgorithmType(EncryptionAlgorithmType encryptionAlgorithmType) {
+        this.encryptionAlgorithmType = encryptionAlgorithmType;
     }
 
     /**
@@ -308,12 +351,30 @@ public class Client implements Callable<Integer> {
     }
 
     /**
+     * Sets signing keys.
+     *
+     * @param signingKeys the signing keys
+     */
+    public void setSigningKeys(KeyPair signingKeys) {
+        this.signingKeys = signingKeys;
+    }
+
+    /**
      * Method that returns the clients RSA keys
      *
      * @return Clients RSA keys
      */
     public KeyPair getRSAKeys() {
         return RSAKeys;
+    }
+
+    /**
+     * Sets RSA keys.
+     *
+     * @param RSAKeys the RSA keys
+     */
+    public void setRSAKeys(KeyPair RSAKeys) {
+        this.RSAKeys = RSAKeys;
     }
 
     /**
@@ -370,89 +431,9 @@ public class Client implements Callable<Integer> {
         return objectInputStream;
     }
 
-    /**
-     * Sets signing keys.
-     *
-     * @param signingKeys the signing keys
-     */
-    public void setSigningKeys(KeyPair signingKeys) {
-        this.signingKeys = signingKeys;
-    }
-
-    /**
-     * Sets name.
-     *
-     * @param name the name
-     */
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    /**
-     * Sets encryption algorithm type.
-     *
-     * @param encryptionAlgorithmType the encryption algorithm type
-     */
-    public void setEncryptionAlgorithmType(EncryptionAlgorithmType encryptionAlgorithmType) {
-        this.encryptionAlgorithmType = encryptionAlgorithmType;
-    }
-
-    /**
-     * Sets encryption algorithm.
-     *
-     * @param encryptionAlgorithm the encryption algorithm
-     */
-    public void setEncryptionAlgorithm(String encryptionAlgorithm) {
-        this.encryptionAlgorithm = encryptionAlgorithm;
-    }
-
-
-    /**
-     * Sets key size.
-     *
-     * @param keySize the key size
-     */
-    public void setKeySize(Integer keySize) {
-        this.keySize = keySize;
-    }
-
-    /**
-     * Sets hashing algorithm.
-     *
-     * @param hashingAlgorithm the hashing algorithm
-     */
-    public void setHashingAlgorithm(String hashingAlgorithm) {
-        this.hashingAlgorithm = hashingAlgorithm;
-    }
-
-
-    /**
-     * Sets RSA keys.
-     *
-     * @param RSAKeys the RSA keys
-     */
-    public void setRSAKeys(KeyPair RSAKeys) {
-        this.RSAKeys = RSAKeys;
-    }
-
     @Override
     public String toString() {
-        return "Client{" +
-                "encryptionAlgorithm='" + encryptionAlgorithm + '\'' +
-                ", keySize=" + keySize +
-                ", hashingAlgorithm='" + hashingAlgorithm + '\'' +
-                ", name='" + name + '\'' +
-                ", host='" + host + '\'' +
-                ", port=" + port +
-                ", socket=" + socket +
-                ", encryptionAlgorithmType=" + encryptionAlgorithmType +
-                ", symmetricEncryptionKey=" + symmetricEncryptionKey +
-                ", signingKeys=" + signingKeys +
-                ", serverSigningKey=" + serverSigningKey +
-                ", RSAKeys=" + RSAKeys +
-                ", serverRSAKey=" + serverRSAKey +
-                ", objectOutputStream=" + objectOutputStream +
-                ", objectInputStream=" + objectInputStream +
-                '}';
+        return "Client{" + "encryptionAlgorithm='" + encryptionAlgorithm + '\'' + ", keySize=" + keySize + ", " +
+                "hashingAlgorithm='" + hashingAlgorithm + '\'' + ", name='" + name + '\'' + ", host='" + host + '\'' + ", port=" + port + ", socket=" + socket + ", encryptionAlgorithmType=" + encryptionAlgorithmType + ", symmetricEncryptionKey=" + symmetricEncryptionKey + ", signingKeys=" + signingKeys + ", serverSigningKey=" + serverSigningKey + ", RSAKeys=" + RSAKeys + ", serverRSAKey=" + serverRSAKey + ", objectOutputStream=" + objectOutputStream + ", objectInputStream=" + objectInputStream + '}';
     }
 }

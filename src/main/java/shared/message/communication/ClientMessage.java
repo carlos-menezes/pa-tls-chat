@@ -1,7 +1,7 @@
 package shared.message.communication;
 
 import client.Client;
-import shared.encryption.codec.Enconder;
+import shared.encryption.codec.Encoder;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -29,14 +29,15 @@ public class ClientMessage extends Message {
      *
      * @param message Raw message sent from the client.
      */
-    public ClientMessage(String message, Client client) throws NoSuchPaddingException, IllegalBlockSizeException,
-            NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, SignatureException {
+    public ClientMessage(String message, Client client) throws NoSuchAlgorithmException, InvalidKeyException,
+            SignatureException, IllegalBlockSizeException, NoSuchPaddingException, BadPaddingException {
         String messageContent = extractMessage(message);
 
-        byte[] encodedMessage = Enconder.encodeMessage(messageContent, client);
+        byte[] encodedMessage = Encoder.encodeMessage(messageContent, client);
         this.setMessage(encodedMessage);
 
-        byte[] signature = Enconder.createSignature(messageContent, client.getHashingAlgorithm(), client.getSigningKeys().getPrivate()); // Sign the message with the signing key
+        byte[] signature = Encoder.createSignature(messageContent, client.getHashingAlgorithm(), client.getSigningKeys()
+                                                                                                       .getPrivate()); // Sign the message with the signing key
         this.setSignature(signature);
 
         this.users = extractUsers(message);
@@ -85,8 +86,7 @@ public class ClientMessage extends Message {
         // Append to the resulting message if it's not the users
         {
             if (!e.startsWith(USER_DECORATOR)) {
-                message.append(e)
-                        .append(e.equals(splitMessage[splitMessage.length - 1]) ? "" : WORD_DELIMITER);
+                message.append(e).append(e.equals(splitMessage[splitMessage.length - 1]) ? "" : WORD_DELIMITER);
             }
         }
 
