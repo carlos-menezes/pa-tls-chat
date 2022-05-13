@@ -2,7 +2,7 @@
   <configuration default="false" name="Run Client &quot;otavio&quot;" type="Application" factoryName="Application" singleton="false">
     <option name="MAIN_CLASS_NAME" value="client.Main" />
     <module name="pa-tls-chat" />
-    <option name="PROGRAM_PARAMETERS" value="-e=RSA -k=4096 -m=MD5 --host=localhost --port=4000 -n otavio" />
+    <option name="PROGRAM_PARAMETERS" value="-e=RSA -k=4096 -m=MD5withRSA --host=localhost --port=4000 -n otavio" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="client.*" />

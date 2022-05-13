@@ -2,7 +2,7 @@
   <configuration default="false" name="Run Client &quot;carlos&quot;" type="Application" factoryName="Application" singleton="false">
     <option name="MAIN_CLASS_NAME" value="client.Main" />
     <module name="pa-tls-chat" />
-    <option name="PROGRAM_PARAMETERS" value="-e=DES -k=64 -m=SHA-512 --host=localhost --port=4000 -n carlos" />
+    <option name="PROGRAM_PARAMETERS" value="-e=DES -k=64 -m=SHA512withRSA --host=localhost --port=4000 -n carlos" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="client.*" />
