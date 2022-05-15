@@ -3,12 +3,10 @@ name: Test project on different OS
 on:
   pull_request:
     branches:
-      - master
-      - develop
+      - final
   push:
     branches:
-      - master
-      - develop
+      - final
 
 jobs:
   build:
