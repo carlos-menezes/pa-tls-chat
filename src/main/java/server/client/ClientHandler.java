@@ -109,9 +109,9 @@ public class ClientHandler implements Runnable {
                                                            clientSpec.getPublicSigningKey(),
                                                            clientMessage.getSignature());
 
-        // Verify if hashes match
+        // Verify if signature is valid
         if (!validSignature) {
-            Logger.error("Hashes do not match");
+            Logger.error("Signature does not match");
             return;
         }
 
