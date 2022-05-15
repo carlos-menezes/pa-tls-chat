@@ -55,7 +55,7 @@ public class Client implements Callable<Integer> {
     @CommandLine.Option(names = {"-n", "--name"}, description = "Client name")
     @SuppressWarnings("FieldMayBeFinal")
     private String name = "";
-    @CommandLine.Option(names = {"-h", "--host"}, description = "Server hostname", required = true)
+    @CommandLine.Option(names = {"--host"}, description = "Server hostname", required = true)
     private String host;
     @CommandLine.Option(names = {"-p", "--port"}, description = "Server port", required = true)
 
