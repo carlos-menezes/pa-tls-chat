@@ -48,7 +48,7 @@ public class ClientHandler implements Runnable {
     }
 
     /**
-     * Runs the handshake protocol and handles the messages.
+     * Handles incoming messages.
      */
     @Override
     public void run() {
@@ -62,7 +62,7 @@ public class ClientHandler implements Runnable {
                     this.handleClientMessage(clientMessage);
                 }
             } catch (IOException | ClassNotFoundException | NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException | SignatureException e) {
-                e.printStackTrace();
+                // Connection could be reset here, i.e. the socket was shutdown on the user's end.
                 break;
             }
         }
@@ -109,9 +109,9 @@ public class ClientHandler implements Runnable {
                                                            clientSpec.getPublicSigningKey(),
                                                            clientMessage.getSignature());
 
-        // Verify if hashes match
+        // Verify if signature is valid
         if (!validSignature) {
-            Logger.error("Hashes do not match");
+            Logger.error("Signature does not match");
             return;
         }
 

@@ -3,12 +3,10 @@ name: Build package, documentation, and test coverage
 on:
   pull_request:
     branches:
-      - master
-      - develop
+      - final
   push:
     branches:
-      - master
-      - develop
+      - final
 
 jobs:
   build:
