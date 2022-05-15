@@ -26,7 +26,7 @@
 - `-k, --key-size` - Tamanho da chave
 - `-m, --hashing-algorithm` - Algoritmo de *hash*
 - `-n, --name` - Nome do utilizador
-- `-h, --host` - Hostname do servidor
+- `--host` - Hostname do servidor
 - `-p, --port` - Porta do servidor
 
 ### Servidor
